@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChangeNameForm } from "@/components/ChangeNameForm";
 import { AddItemsPanel } from "@/components/AddItemsPanel";
+import { MembersOverview } from "@/components/MembersOverview";
 import { Modal } from "@/components/Modal";
 import { ConfigWarning } from "@/components/ConfigWarning";
 import { ItemList } from "@/components/ItemList";
@@ -276,6 +277,13 @@ export function TripPageClient({ tripId }: TripPageClientProps) {
           <ShareLink url={joinUrl} pin={trip.pin} />
         </div>
       )}
+
+      <MembersOverview
+        people={people}
+        items={items}
+        payments={payments}
+        currentPersonId={person.id}
+      />
 
       <section className="mb-8">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">

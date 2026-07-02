@@ -29,6 +29,72 @@ function itemPrice(item: Item): number {
   return item.price != null ? roundAmount(Number(item.price)) : 0;
 }
 
+export interface MemberOverviewRow {
+  personId: string;
+  personName: string;
+  itemCount: number;
+  itemsTotal: number;
+  paymentsTotal: number;
+  combinedTotal: number;
+}
+
+export function computeMemberOverview(
+  people: Person[],
+  items: Item[],
+  payments: Payment[]
+): MemberOverviewRow[] {
+  const itemCount = new Map<string, number>();
+  const itemsTotal = new Map<string, number>();
+  const paymentsTotal = new Map<string, number>();
+
+  for (const person of people) {
+    itemCount.set(person.id, 0);
+    itemsTotal.set(person.id, 0);
+    paymentsTotal.set(person.id, 0);
+  }
+
+  for (const item of items) {
+    if (!item.assigned_person_id) continue;
+    itemCount.set(
+      item.assigned_person_id,
+      (itemCount.get(item.assigned_person_id) ?? 0) + 1
+    );
+    itemsTotal.set(
+      item.assigned_person_id,
+      roundAmount((itemsTotal.get(item.assigned_person_id) ?? 0) + itemPrice(item))
+    );
+  }
+
+  for (const payment of payments) {
+    paymentsTotal.set(
+      payment.person_id,
+      roundAmount((paymentsTotal.get(payment.person_id) ?? 0) + Number(payment.amount))
+    );
+  }
+
+  return people
+    .map((person) => {
+      const itemsTot = itemsTotal.get(person.id) ?? 0;
+      const payTot = paymentsTotal.get(person.id) ?? 0;
+      return {
+        personId: person.id,
+        personName: person.name,
+        itemCount: itemCount.get(person.id) ?? 0,
+        itemsTotal: itemsTot,
+        paymentsTotal: payTot,
+        combinedTotal: roundAmount(itemsTot + payTot),
+      };
+    })
+    .sort((a, b) => {
+      if (b.combinedTotal !== a.combinedTotal) {
+        return b.combinedTotal - a.combinedTotal;
+      }
+      return a.personName.localeCompare(b.personName, undefined, {
+        sensitivity: "base",
+      });
+    });
+}
+
 export function computeSettlement(
   people: Person[],
   items: Item[],
