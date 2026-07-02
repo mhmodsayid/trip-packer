@@ -733,6 +733,26 @@ export async function claimItems(
   return claimed;
 }
 
+export async function ownerUnassignItem(
+  itemId: string,
+  tripId: string,
+  personId: string,
+  sessionId: string
+): Promise<void> {
+  await verifyTripOwner(tripId, personId, sessionId);
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from(TABLES.items)
+    .update({ assigned_person_id: null })
+    .eq("id", itemId)
+    .eq("trip_id", tripId)
+    .not("assigned_person_id", "is", null)
+    .select("id");
+
+  if (error) throw error;
+  if (!data?.length) throw new AppError("couldNotUnclaim");
+}
+
 export async function unclaimItem(itemId: string, personId: string): Promise<void> {
   const supabase = getSupabase();
   const { data, error } = await supabase

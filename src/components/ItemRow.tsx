@@ -13,6 +13,7 @@ interface ItemRowProps {
   assigneeName: string | null;
   status: ItemStatus;
   canDelete: boolean;
+  canUnassign: boolean;
   canEditPrice: boolean;
   busy: boolean;
   selectMode: boolean;
@@ -65,6 +66,7 @@ export function ItemRow({
   assigneeName,
   status,
   canDelete,
+  canUnassign,
   canEditPrice,
   busy,
   selectMode,
@@ -311,7 +313,7 @@ export function ItemRow({
                 )}
               </Button>
             )}
-            {status === "mine" && (
+            {canUnassign && (
               <Button
                 size="sm"
                 variant="secondary"
@@ -319,7 +321,11 @@ export function ItemRow({
                 disabled={busy}
                 className="min-h-11 min-w-22 motion-safe:active:scale-[0.97]"
               >
-                {busy ? <Spinner label={t("loading")} /> : t("unclaim")}
+                {busy ? (
+                  <Spinner label={t("loading")} />
+                ) : (
+                  t(status === "mine" ? "unclaim" : "unassign")
+                )}
               </Button>
             )}
             {canDelete && (

@@ -325,6 +325,7 @@ export function ItemList({
             const canEditPrice = isCreator || isMine || isOwner;
             const canEditName = isCreator || isOwner;
             const canDelete = isCreator || isOwner;
+            const canUnassign = isMine || (isOwner && status === "assigned");
             const busy = actionId === item.id || bulkBusy;
             const isExiting = exitingItems.has(item.id);
             const justClaimed = justClaimedIds.has(item.id);
@@ -336,6 +337,7 @@ export function ItemList({
                 assigneeName={assigneeName}
                 status={status}
                 canDelete={canDelete}
+                canUnassign={canUnassign}
                 canEditPrice={canEditPrice}
                 busy={busy}
                 selectMode={selectMode}

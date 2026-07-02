@@ -35,6 +35,7 @@ import {
   logout,
   ownerDeleteItem,
   ownerRemoveMember,
+  ownerUnassignItem,
   ownerUpdateItemName,
   ownerUpdateItemPrice,
   renamePerson,
@@ -244,6 +245,20 @@ export function TripPageClient({ tripId }: TripPageClientProps) {
     setPeople(peopleData);
   }
 
+  async function handleItemUnclaim(itemId: string) {
+    if (!person) return;
+    const item = items.find((i) => i.id === itemId);
+    if (
+      isOwner &&
+      item?.assigned_person_id &&
+      item.assigned_person_id !== person.id
+    ) {
+      await ownerUnassignItem(itemId, tripId, person.id, person.sessionId);
+    } else {
+      await unclaimItem(itemId, person.id);
+    }
+  }
+
   async function handleRename(newName: string) {
     if (!person) return;
     const updated = await renamePerson(person.id, newName);
@@ -270,7 +285,7 @@ export function TripPageClient({ tripId }: TripPageClientProps) {
       console.error(err);
     }
     clearStoredPerson(tripId);
-    router.replace(`/t/${tripId}/join`);
+    router.replace("/");
   }
 
   return (
@@ -421,7 +436,7 @@ export function TripPageClient({ tripId }: TripPageClientProps) {
           currentPersonId={person.id}
           isOwner={isOwner}
           onClaim={(id) => claimItem(id, person.id)}
-          onUnclaim={(id) => unclaimItem(id, person.id)}
+          onUnclaim={handleItemUnclaim}
           onDelete={handleItemDelete}
           onUpdatePrice={handleItemUpdatePrice}
           onUpdateName={handleItemUpdateName}
