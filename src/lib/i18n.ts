@@ -42,6 +42,9 @@ const translations = {
     joiningTrip: "You're joining",
     cantJoin: "Can't join trip",
     goHome: "Go home",
+    takeOverName: "Continue as {{name}} on this device",
+    takeOverNameHint:
+      "If this is your name, you can continue here. The other device will be signed out.",
 
     signedInAs: "Signed in as",
     changeName: "Change name",
@@ -236,7 +239,7 @@ const translations = {
       failedRemovePerson: "Failed to remove participant.",
       failedLogoutPerson: "Failed to log out participant.",
       nameInUse:
-        "This name is already logged in on another device. Log out there first, or choose another name.",
+        "This name is already active on another device. Continue on this device below, or choose a different name.",
       nameTaken: "That name is already taken by someone else in this trip.",
       sessionExpired:
         "Your session on this device is no longer active. Please join again.",
@@ -282,6 +285,9 @@ const translations = {
     joiningTrip: "أنت تنضم إلى",
     cantJoin: "تعذّر الانضمام",
     goHome: "الصفحة الرئيسية",
+    takeOverName: "المتابعة باسم {{name}} على هذا الجهاز",
+    takeOverNameHint:
+      "إذا كان هذا اسمك، يمكنك المتابعة هنا. سيتم تسجيل الخروج من الجهاز الآخر.",
 
     signedInAs: "مسجّل باسم",
     changeName: "تغيير الاسم",
@@ -477,7 +483,7 @@ const translations = {
       failedRemovePerson: "فشلت إزالة المشارك.",
       failedLogoutPerson: "فشل تسجيل خروج المشارك.",
       nameInUse:
-        "هذا الاسم مسجّل دخوله على جهاز آخر. سجّل الخروج هناك أولاً، أو اختر اسماً آخر.",
+        "هذا الاسم نشط على جهاز آخر. تابع على هذا الجهاز بالزر أدناه، أو اختر اسماً مختلفاً.",
       nameTaken: "هذا الاسم مستخدم بالفعل من شخص آخر في هذه الرحلة.",
       sessionExpired: "جلستك على هذا الجهاز لم تعد نشطة. يرجى الانضمام مجدداً.",
       missingSupabase:

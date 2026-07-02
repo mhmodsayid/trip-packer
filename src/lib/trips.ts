@@ -78,9 +78,14 @@ export async function getTrip(tripId: string): Promise<Trip | null> {
   return data as Trip | null;
 }
 
-export async function joinTrip(tripId: string, name: string): Promise<JoinResult> {
+export async function joinTrip(
+  tripId: string,
+  name: string,
+  options?: { takeOver?: boolean }
+): Promise<JoinResult> {
   const supabase = getSupabase();
   const trimmed = name.trim();
+  const takeOver = options?.takeOver === true;
 
   if (trimmed.toLowerCase() === ADMIN_PARTICIPANT_NAME.toLowerCase()) {
     throw new AppError("nameTaken");
@@ -123,6 +128,7 @@ export async function joinTrip(tripId: string, name: string): Promise<JoinResult
 
   const row = existing as Record<string, unknown>;
   if (
+    !takeOver &&
     isSessionActive({
       active_session_id: row.active_session_id as string | null,
       last_active_at: row.last_active_at as string | null,
@@ -140,6 +146,42 @@ export async function joinTrip(tripId: string, name: string): Promise<JoinResult
 
   if (error) throw error;
   return { person: mapPerson(data as Record<string, unknown>), sessionId };
+}
+
+export async function resumeTripSession(
+  tripId: string,
+  personId: string,
+  sessionId: string
+): Promise<JoinResult> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from(TABLES.people)
+    .select("*")
+    .eq("id", personId)
+    .eq("trip_id", tripId)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) throw new AppError("sessionExpired");
+
+  const person = mapPerson(data as Record<string, unknown>);
+  if (person.active_session_id !== sessionId) {
+    throw new AppError("sessionExpired");
+  }
+
+  const now = new Date().toISOString();
+  const { data: updated, error: updateError } = await supabase
+    .from(TABLES.people)
+    .update({ last_active_at: now })
+    .eq("id", personId)
+    .eq("active_session_id", sessionId)
+    .select()
+    .single();
+
+  if (updateError) throw updateError;
+  if (!updated) throw new AppError("sessionExpired");
+
+  return { person: mapPerson(updated as Record<string, unknown>), sessionId };
 }
 
 export async function joinTripAsAdmin(tripId: string): Promise<JoinResult> {

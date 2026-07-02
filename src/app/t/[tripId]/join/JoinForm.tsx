@@ -1,18 +1,17 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ConfigWarning } from "@/components/ConfigWarning";
 import { JoinLockoutNotice, useJoinLockout } from "@/components/JoinLockoutNotice";
 import { useTranslation } from "@/components/LanguageProvider";
 import { Button, Card, Input, Spinner } from "@/components/ui";
 import { recordFailure, resetAttempts } from "@/lib/attempts";
-import { formatError } from "@/lib/errors";
+import { errorCode, formatError } from "@/lib/errors";
 import { pinsMatch } from "@/lib/pin";
-import { setStoredPerson } from "@/lib/storage";
+import { clearStoredPerson, getStoredPerson, setStoredPerson } from "@/lib/storage";
 import { isSupabaseConfigured } from "@/lib/supabase";
-import { joinTrip, getTrip } from "@/lib/trips";
-import type { Trip } from "@/types";
+import { getTrip, joinTrip, resumeTripSession } from "@/lib/trips";
 
 interface JoinFormProps {
   params: Promise<{ tripId: string }>;
@@ -26,20 +25,54 @@ export function JoinForm({ params }: JoinFormProps) {
   const { t, te } = useTranslation();
   const { locked: joinLocked, message: joinLockMessage } = useJoinLockout();
   const [tripId, setTripId] = useState<string | null>(null);
-  const [trip, setTrip] = useState<Trip | null>(null);
+  const [tripName, setTripName] = useState<string | null>(null);
   const [stage, setStage] = useState<JoinStage>("loading");
   const [name, setName] = useState("");
   const [pinInput, setPinInput] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [pinSubmitting, setPinSubmitting] = useState(false);
+  const [takeOverSubmitting, setTakeOverSubmitting] = useState(false);
   const [fatalError, setFatalError] = useState<string | null>(null);
   const [stepError, setStepError] = useState<string | null>(null);
+  const [showTakeOver, setShowTakeOver] = useState(false);
 
   const urlPin = searchParams.get("pin") ?? "";
 
   useEffect(() => {
     params.then((p) => setTripId(p.tripId));
   }, [params]);
+
+  const enterTrip = useCallback(
+    (id: string, personId: string, personName: string, sessionId: string) => {
+      setStoredPerson(id, { id: personId, name: personName, sessionId });
+      router.replace(`/t/${id}`);
+    },
+    [router]
+  );
+
+  const proceedAfterPinSuccess = useCallback(
+    async (id: string) => {
+      const stored = getStoredPerson(id);
+      if (stored) {
+        try {
+          const { person, sessionId } = await resumeTripSession(
+            id,
+            stored.id,
+            stored.sessionId
+          );
+          enterTrip(id, person.id, person.name, sessionId);
+          return;
+        } catch (err) {
+          if (errorCode(err) === "sessionExpired") {
+            clearStoredPerson(id);
+            setName(stored.name);
+          }
+        }
+      }
+      setStage("name");
+    },
+    [enterTrip]
+  );
 
   useEffect(() => {
     if (!tripId || !isSupabaseConfigured()) {
@@ -50,16 +83,17 @@ export function JoinForm({ params }: JoinFormProps) {
     setStage("loading");
     setFatalError(null);
     setStepError(null);
+    setShowTakeOver(false);
 
     getTrip(tripId)
-      .then((loaded) => {
+      .then(async (loaded) => {
         if (!loaded) {
           recordFailure();
           setFatalError(te("tripNotFound"));
           return;
         }
 
-        setTrip(loaded);
+        setTripName(loaded.name);
 
         if (urlPin) {
           if (!pinsMatch(loaded.pin, urlPin)) {
@@ -68,7 +102,7 @@ export function JoinForm({ params }: JoinFormProps) {
             return;
           }
           resetAttempts();
-          setStage("name");
+          await proceedAfterPinSuccess(tripId);
           return;
         }
 
@@ -77,11 +111,11 @@ export function JoinForm({ params }: JoinFormProps) {
       .catch((err) => {
         setFatalError(formatError(err, te, "failedValidateTrip"));
       });
-  }, [tripId, urlPin, te]);
+  }, [tripId, urlPin, te, proceedAfterPinSuccess]);
 
   async function handlePinSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!trip || joinLocked) return;
+    if (!tripId || joinLocked) return;
 
     const entered = pinInput.trim();
     if (!entered) return;
@@ -89,16 +123,26 @@ export function JoinForm({ params }: JoinFormProps) {
     setPinSubmitting(true);
     setStepError(null);
 
-    if (!pinsMatch(trip.pin, entered)) {
+    const loaded = await getTrip(tripId);
+    if (!loaded) {
+      recordFailure();
+      setStepError(te("tripNotFound"));
+      setPinSubmitting(false);
+      return;
+    }
+
+    if (!pinsMatch(loaded.pin, entered)) {
       recordFailure();
       setStepError(te("invalidPin"));
       setPinSubmitting(false);
       return;
     }
 
+    setTripName(loaded.name);
     resetAttempts();
-    setStage("name");
     setPinSubmitting(false);
+    setStage("loading");
+    await proceedAfterPinSuccess(tripId);
   }
 
   async function handleJoin(e: FormEvent) {
@@ -110,14 +154,35 @@ export function JoinForm({ params }: JoinFormProps) {
 
     setSubmitting(true);
     setStepError(null);
+    setShowTakeOver(false);
 
     try {
       const { person, sessionId } = await joinTrip(tripId, trimmed);
-      setStoredPerson(tripId, { id: person.id, name: person.name, sessionId });
-      router.replace(`/t/${tripId}`);
+      enterTrip(tripId, person.id, person.name, sessionId);
     } catch (err) {
+      if (errorCode(err) === "nameInUse") {
+        setShowTakeOver(true);
+      }
       setStepError(formatError(err, te, "failedJoinTrip"));
       setSubmitting(false);
+    }
+  }
+
+  async function handleTakeOver() {
+    if (!tripId) return;
+
+    const trimmed = name.trim();
+    if (!trimmed) return;
+
+    setTakeOverSubmitting(true);
+    setStepError(null);
+
+    try {
+      const { person, sessionId } = await joinTrip(tripId, trimmed, { takeOver: true });
+      enterTrip(tripId, person.id, person.name, sessionId);
+    } catch (err) {
+      setStepError(formatError(err, te, "failedJoinTrip"));
+      setTakeOverSubmitting(false);
     }
   }
 
@@ -157,10 +222,10 @@ export function JoinForm({ params }: JoinFormProps) {
       <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-4 py-12 animate-section-in">
         <div className="mb-6 text-center">
           <h1 className="text-2xl font-bold">{t("joinTrip")}</h1>
-          {trip?.name && (
+          {tripName && (
             <p className="mt-2 text-muted">
               {t("joiningTrip")}{" "}
-              <span className="font-medium text-foreground">{trip.name}</span>
+              <span className="font-medium text-foreground">{tripName}</span>
             </p>
           )}
         </div>
@@ -205,10 +270,10 @@ export function JoinForm({ params }: JoinFormProps) {
     <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-4 py-12 animate-section-in">
       <div className="mb-6 text-center">
         <h1 className="text-2xl font-bold">{t("joinTrip")}</h1>
-        {trip?.name && (
+        {tripName && (
           <p className="mt-2 text-muted">
             {t("joiningTrip")}{" "}
-            <span className="font-medium text-foreground">{trip.name}</span>
+            <span className="font-medium text-foreground">{tripName}</span>
           </p>
         )}
       </div>
@@ -223,16 +288,44 @@ export function JoinForm({ params }: JoinFormProps) {
               id="name"
               placeholder={t("namePlaceholder")}
               value={name}
-              onChange={(e) => setName(e.target.value)}
-              disabled={submitting}
+              onChange={(e) => {
+                setName(e.target.value);
+                setShowTakeOver(false);
+                setStepError(null);
+              }}
+              disabled={submitting || takeOverSubmitting}
               autoFocus
               className="mt-1"
             />
           </div>
-          <Button type="submit" className="w-full" disabled={submitting || !name.trim()}>
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={submitting || takeOverSubmitting || !name.trim()}
+          >
             {submitting ? <Spinner label={t("loading")} /> : t("joinTripButton")}
           </Button>
         </form>
+
+        {showTakeOver && name.trim() && (
+          <div className="mt-4 space-y-2 border-t border-border pt-4">
+            <p className="text-sm text-muted">{t("takeOverNameHint")}</p>
+            <Button
+              type="button"
+              variant="secondary"
+              className="w-full"
+              disabled={takeOverSubmitting || submitting}
+              onClick={handleTakeOver}
+            >
+              {takeOverSubmitting ? (
+                <Spinner label={t("loading")} />
+              ) : (
+                t("takeOverName", { name: name.trim() })
+              )}
+            </Button>
+          </div>
+        )}
+
         {stepError && (
           <p className="mt-3 animate-toast-in text-sm text-red-600" role="alert">
             {stepError}

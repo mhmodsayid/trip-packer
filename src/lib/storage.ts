@@ -1,7 +1,19 @@
 import type { StoredPerson } from "@/types";
+import { CANONICAL_HOST } from "./constants";
 
 function storageKey(tripId: string): string {
   return `trip-packer:person:${tripId}`;
+}
+
+export function getAppOrigin(): string {
+  if (typeof window === "undefined") {
+    return `https://${CANONICAL_HOST}`;
+  }
+  const { hostname, origin } = window.location;
+  if (hostname === "localhost" || hostname === "127.0.0.1") {
+    return origin;
+  }
+  return `https://${CANONICAL_HOST}`;
 }
 
 export function getStoredPerson(tripId: string): StoredPerson | null {
@@ -26,9 +38,5 @@ export function clearStoredPerson(tripId: string): void {
 }
 
 export function buildJoinUrl(tripId: string, pin: string): string {
-  if (typeof window === "undefined") {
-    return `/t/${tripId}/join?pin=${encodeURIComponent(pin)}`;
-  }
-  const origin = window.location.origin;
-  return `${origin}/t/${tripId}/join?pin=${encodeURIComponent(pin)}`;
+  return `${getAppOrigin()}/t/${tripId}/join?pin=${encodeURIComponent(pin)}`;
 }
