@@ -5,6 +5,7 @@ import type { Payment, Person } from "@/types";
 import { useTranslation } from "@/components/LanguageProvider";
 import { formatAmount, parseAmountInput } from "@/lib/format-amount";
 import { formatError } from "@/lib/errors";
+import { isAdminPersonId } from "@/lib/people";
 import { Button, Card, Input, Spinner } from "@/components/ui";
 
 interface PaymentsPanelProps {
@@ -39,6 +40,11 @@ export function PaymentsPanel({
     for (const p of people) map.set(p.id, p.name);
     return map;
   }, [people]);
+
+  const visiblePayments = useMemo(
+    () => payments.filter((p) => !isAdminPersonId(people, p.person_id)),
+    [payments, people]
+  );
 
   async function handleAdd(e: FormEvent) {
     e.preventDefault();
@@ -140,11 +146,11 @@ export function PaymentsPanel({
         </p>
       )}
 
-      {payments.length === 0 ? (
+      {visiblePayments.length === 0 ? (
         <p className="text-sm text-muted">{t("noPaymentsYet")}</p>
       ) : (
         <ul className="divide-y divide-border rounded-lg border border-border">
-          {payments.map((payment) => {
+          {visiblePayments.map((payment) => {
             const isMine = payment.person_id === currentPersonId;
             const busy = actionId === payment.id;
             const name =

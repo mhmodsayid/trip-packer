@@ -1,13 +1,13 @@
 "use client";
 
-import { FormEvent, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Modal } from "@/components/Modal";
 import { useTranslation } from "@/components/LanguageProvider";
-import { Button, Input, Spinner } from "@/components/ui";
+import { Button, Spinner } from "@/components/ui";
 import { formatError } from "@/lib/errors";
 import { setStoredPerson } from "@/lib/storage";
-import { joinTrip } from "@/lib/trips";
+import { joinTripAsAdmin } from "@/lib/trips";
 
 interface AdminEnterTripButtonProps {
   tripId: string;
@@ -18,31 +18,23 @@ export function AdminEnterTripButton({ tripId }: AdminEnterTripButtonProps) {
   const router = useRouter();
   const triggerRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
-  const [name, setName] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  function openDialog() {
-    setName(t("adminParticipantDefaultName"));
-    setError(null);
-    setOpen(true);
-  }
 
   function closeDialog() {
     if (submitting) return;
     setOpen(false);
+    setError(null);
   }
 
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    const trimmed = name.trim();
-    if (!trimmed || submitting) return;
+  async function handleEnter() {
+    if (submitting) return;
 
     setSubmitting(true);
     setError(null);
 
     try {
-      const { person, sessionId } = await joinTrip(tripId, trimmed);
+      const { person, sessionId } = await joinTripAsAdmin(tripId);
       setStoredPerson(tripId, { id: person.id, name: person.name, sessionId });
       router.push(`/t/${tripId}`);
     } catch (err) {
@@ -53,7 +45,7 @@ export function AdminEnterTripButton({ tripId }: AdminEnterTripButtonProps) {
 
   return (
     <>
-      <Button ref={triggerRef} type="button" onClick={openDialog} className="gap-1.5">
+      <Button ref={triggerRef} type="button" onClick={() => setOpen(true)} className="gap-1.5">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 20 20"
@@ -72,22 +64,8 @@ export function AdminEnterTripButton({ tripId }: AdminEnterTripButtonProps) {
         title={t("adminEnterTripTitle")}
         returnFocusRef={triggerRef}
       >
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <p className="text-sm text-muted">{t("adminEnterTripHint")}</p>
-          <div>
-            <label htmlFor="admin-participant-name" className="text-sm font-medium">
-              {t("yourName")}
-            </label>
-            <Input
-              id="admin-participant-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder={t("namePlaceholder")}
-              disabled={submitting}
-              autoFocus
-              className="mt-1.5"
-            />
-          </div>
+        <div className="space-y-4">
+          <p className="text-sm text-muted">{t("adminEnterTripConfirmMsg")}</p>
 
           {error && (
             <p className="animate-toast-in text-sm text-red-600" role="alert">
@@ -99,11 +77,11 @@ export function AdminEnterTripButton({ tripId }: AdminEnterTripButtonProps) {
             <Button type="button" variant="secondary" onClick={closeDialog} disabled={submitting}>
               {t("cancel")}
             </Button>
-            <Button type="submit" disabled={submitting || !name.trim()}>
+            <Button type="button" onClick={handleEnter} disabled={submitting}>
               {submitting ? <Spinner label={t("loading")} /> : t("adminEnterTripConfirm")}
             </Button>
           </div>
-        </form>
+        </div>
       </Modal>
     </>
   );

@@ -14,6 +14,7 @@ import { ShareLink } from "@/components/ShareLink";
 import { useTranslation } from "@/components/LanguageProvider";
 import { Button, Card, Spinner } from "@/components/ui";
 import { formatError, errorCode } from "@/lib/errors";
+import { isAdminPersonId } from "@/lib/people";
 import { buildJoinUrl, clearStoredPerson, getStoredPerson, setStoredPerson } from "@/lib/storage";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import {
@@ -179,6 +180,7 @@ export function TripPageClient({ tripId }: TripPageClientProps) {
   }
 
   const joinUrl = buildJoinUrl(trip.id, trip.pin);
+  const isAdminSession = isAdminPersonId(people, person.id);
 
   async function handleRename(newName: string) {
     if (!person) return;
@@ -220,26 +222,30 @@ export function TripPageClient({ tripId }: TripPageClientProps) {
                 {t("signedInAs")}{" "}
                 <span className="font-medium text-foreground">{person.name}</span>
               </span>
-              <button
-                ref={changeNameRef}
-                type="button"
-                onClick={() => setChangeNameOpen(true)}
-                className="inline-flex min-h-8 items-center gap-1 rounded-md text-xs font-medium text-primary motion-safe:transition-colors motion-safe:duration-200 hover:text-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                  className="h-3.5 w-3.5"
-                  aria-hidden="true"
-                >
-                  <path d="m2.695 14.762-1.262 3.154a.5.5 0 0 0 .65.65l3.155-1.262a4 4 0 0 0 1.343-.885L17.5 5.5a2.121 2.121 0 0 0-3-3L3.58 13.42a4 4 0 0 0-.885 1.343Z" />
-                </svg>
-                {t("changeName")}
-              </button>
-              <span className="text-muted" aria-hidden="true">
-                ·
-              </span>
+              {!isAdminSession && (
+                <>
+                  <button
+                    ref={changeNameRef}
+                    type="button"
+                    onClick={() => setChangeNameOpen(true)}
+                    className="inline-flex min-h-8 items-center gap-1 rounded-md text-xs font-medium text-primary motion-safe:transition-colors motion-safe:duration-200 hover:text-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                      className="h-3.5 w-3.5"
+                      aria-hidden="true"
+                    >
+                      <path d="m2.695 14.762-1.262 3.154a.5.5 0 0 0 .65.65l3.155-1.262a4 4 0 0 0 1.343-.885L17.5 5.5a2.121 2.121 0 0 0-3-3L3.58 13.42a4 4 0 0 0-.885 1.343Z" />
+                    </svg>
+                    {t("changeName")}
+                  </button>
+                  <span className="text-muted" aria-hidden="true">
+                    ·
+                  </span>
+                </>
+              )}
               <button
                 type="button"
                 onClick={handleLogout}

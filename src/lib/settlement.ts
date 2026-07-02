@@ -1,6 +1,6 @@
 import { roundAmount } from "./format-amount";
+import { adminPersonIds, visiblePeople } from "./people";
 import type { Item, Payment, Person } from "@/types";
-
 export interface PersonBalance {
   personId: string;
   personName: string;
@@ -43,18 +43,20 @@ export function computeMemberOverview(
   items: Item[],
   payments: Payment[]
 ): MemberOverviewRow[] {
+  const participants = visiblePeople(people);
+  const hiddenIds = adminPersonIds(people);
   const itemCount = new Map<string, number>();
   const itemsTotal = new Map<string, number>();
   const paymentsTotal = new Map<string, number>();
 
-  for (const person of people) {
+  for (const person of participants) {
     itemCount.set(person.id, 0);
     itemsTotal.set(person.id, 0);
     paymentsTotal.set(person.id, 0);
   }
 
   for (const item of items) {
-    if (!item.assigned_person_id) continue;
+    if (!item.assigned_person_id || hiddenIds.has(item.assigned_person_id)) continue;
     itemCount.set(
       item.assigned_person_id,
       (itemCount.get(item.assigned_person_id) ?? 0) + 1
@@ -66,13 +68,14 @@ export function computeMemberOverview(
   }
 
   for (const payment of payments) {
+    if (hiddenIds.has(payment.person_id)) continue;
     paymentsTotal.set(
       payment.person_id,
       roundAmount((paymentsTotal.get(payment.person_id) ?? 0) + Number(payment.amount))
     );
   }
 
-  return people
+  return participants
     .map((person) => {
       const itemsTot = itemsTotal.get(person.id) ?? 0;
       const payTot = paymentsTotal.get(person.id) ?? 0;
@@ -100,14 +103,18 @@ export function computeSettlement(
   items: Item[],
   payments: Payment[]
 ): SettlementSummary {
+  const participants = visiblePeople(people);
+  const hiddenIds = adminPersonIds(people);
+
   const claimedItemsTotal = items
-    .filter((i) => i.assigned_person_id)
+    .filter(
+      (i) => i.assigned_person_id && !hiddenIds.has(i.assigned_person_id)
+    )
     .reduce((sum, i) => sum + itemPrice(i), 0);
 
-  const paymentsTotal = payments.reduce(
-    (sum, p) => sum + roundAmount(Number(p.amount)),
-    0
-  );
+  const paymentsTotal = payments
+    .filter((p) => !hiddenIds.has(p.person_id))
+    .reduce((sum, p) => sum + roundAmount(Number(p.amount)), 0);
 
   const totalCost = roundAmount(claimedItemsTotal + paymentsTotal);
 
@@ -118,12 +125,14 @@ export function computeSettlement(
   );
 
   const paidByPerson = new Map<string, number>();
-  for (const person of people) {
+  for (const person of participants) {
     paidByPerson.set(person.id, 0);
   }
 
   for (const item of items) {
-    if (!item.assigned_person_id) continue;
+    if (!item.assigned_person_id || hiddenIds.has(item.assigned_person_id)) {
+      continue;
+    }
     const price = itemPrice(item);
     if (price <= 0) continue;
     paidByPerson.set(
@@ -133,17 +142,18 @@ export function computeSettlement(
   }
 
   for (const payment of payments) {
+    if (hiddenIds.has(payment.person_id)) continue;
     paidByPerson.set(
       payment.person_id,
       roundAmount((paidByPerson.get(payment.person_id) ?? 0) + Number(payment.amount))
     );
   }
 
-  const participantCount = people.length;
+  const participantCount = participants.length;
   const fairShare =
     participantCount > 0 ? roundAmount(totalCost / participantCount) : 0;
 
-  const balances: PersonBalance[] = people.map((person) => {
+  const balances: PersonBalance[] = participants.map((person) => {
     const paid = paidByPerson.get(person.id) ?? 0;
     return {
       personId: person.id,

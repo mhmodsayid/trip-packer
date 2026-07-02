@@ -191,10 +191,11 @@ const translations = {
     adminDeleteItemConfirm: 'Delete item "{{name}}"?',
     adminInvalidPassword: "Incorrect password.",
     adminNotConfigured: "Admin is not configured on this server.",
-    adminEnterTrip: "Enter trip as participant",
-    adminEnterTripTitle: "Join as participant",
-    adminEnterTripHint: "Choose the name you'll use on the packing list.",
-    adminEnterTripConfirm: "Enter trip",
+    adminEnterTrip: "Enter trip as admin",
+    adminEnterTripTitle: "Enter as admin",
+    adminEnterTripConfirmMsg:
+      "Enter this trip under a hidden admin identity? You won't appear in the member list or settlement split.",
+    adminEnterTripConfirm: "Enter as admin",
     adminParticipantDefaultName: "Admin",
 
     errors: {
@@ -423,10 +424,11 @@ const translations = {
     adminDeleteItemConfirm: 'حذف العنصر "{{name}}"؟',
     adminInvalidPassword: "كلمة المرور غير صحيحة.",
     adminNotConfigured: "لم يتم إعداد المسؤول على هذا الخادم.",
-    adminEnterTrip: "الدخول إلى الرحلة كمشارك",
-    adminEnterTripTitle: "الانضمام كمشارك",
-    adminEnterTripHint: "اختر الاسم الذي ستستخدمه في قائمة التعبئة.",
-    adminEnterTripConfirm: "دخول الرحلة",
+    adminEnterTrip: "الدخول كمشرف",
+    adminEnterTripTitle: "الدخول كمشرف",
+    adminEnterTripConfirmMsg:
+      "الدخول إلى هذه الرحلة بهوية مشرف مخفية؟ لن تظهر في قائمة الأعضاء أو في تقسيم التسوية.",
+    adminEnterTripConfirm: "دخول كمشرف",
     adminParticipantDefaultName: "المشرف",
 
     errors: {

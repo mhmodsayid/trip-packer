@@ -5,6 +5,7 @@ import {
   filterNewItems,
   type InsertItemsResult,
 } from "./item-dedupe";
+import { ADMIN_PARTICIPANT_NAME } from "./constants";
 import { roundAmount } from "./format-amount";
 import { generatePin } from "./pin";
 import { TABLES } from "./tables";
@@ -18,7 +19,11 @@ export interface JoinResult {
 }
 
 function mapPerson(row: Record<string, unknown>): Person {
-  return row as unknown as Person;
+  const person = row as unknown as Person;
+  return {
+    ...person,
+    is_admin: row.is_admin === true,
+  };
 }
 
 function isSessionActive(row: {
@@ -76,6 +81,11 @@ export async function getTrip(tripId: string): Promise<Trip | null> {
 export async function joinTrip(tripId: string, name: string): Promise<JoinResult> {
   const supabase = getSupabase();
   const trimmed = name.trim();
+
+  if (trimmed.toLowerCase() === ADMIN_PARTICIPANT_NAME.toLowerCase()) {
+    throw new AppError("nameTaken");
+  }
+
   const sessionId = crypto.randomUUID();
   const now = new Date().toISOString();
 
@@ -87,6 +97,13 @@ export async function joinTrip(tripId: string, name: string): Promise<JoinResult
     .maybeSingle();
 
   if (fetchError) throw fetchError;
+
+  if (existing) {
+    const row = existing as Record<string, unknown>;
+    if (row.is_admin === true) {
+      throw new AppError("nameTaken");
+    }
+  }
 
   if (!existing) {
     const { data, error } = await supabase
@@ -117,6 +134,67 @@ export async function joinTrip(tripId: string, name: string): Promise<JoinResult
   const { data, error } = await supabase
     .from(TABLES.people)
     .update({ active_session_id: sessionId, last_active_at: now })
+    .eq("id", existing.id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return { person: mapPerson(data as Record<string, unknown>), sessionId };
+}
+
+export async function joinTripAsAdmin(tripId: string): Promise<JoinResult> {
+  const supabase = getSupabase();
+  const sessionId = crypto.randomUUID();
+  const now = new Date().toISOString();
+
+  const { data: adminRow, error: adminError } = await supabase
+    .from(TABLES.people)
+    .select("*")
+    .eq("trip_id", tripId)
+    .eq("is_admin", true)
+    .maybeSingle();
+
+  if (adminError) throw adminError;
+
+  let existing = adminRow;
+
+  if (!existing) {
+    const { data: byName, error: nameError } = await supabase
+      .from(TABLES.people)
+      .select("*")
+      .eq("trip_id", tripId)
+      .ilike("name", ADMIN_PARTICIPANT_NAME)
+      .maybeSingle();
+
+    if (nameError) throw nameError;
+    existing = byName;
+  }
+
+  if (!existing) {
+    const { data, error } = await supabase
+      .from(TABLES.people)
+      .insert({
+        trip_id: tripId,
+        name: ADMIN_PARTICIPANT_NAME,
+        is_admin: true,
+        active_session_id: sessionId,
+        last_active_at: now,
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return { person: mapPerson(data as Record<string, unknown>), sessionId };
+  }
+
+  const { data, error } = await supabase
+    .from(TABLES.people)
+    .update({
+      name: ADMIN_PARTICIPANT_NAME,
+      is_admin: true,
+      active_session_id: sessionId,
+      last_active_at: now,
+    })
     .eq("id", existing.id)
     .select()
     .single();
@@ -169,6 +247,14 @@ export async function renamePerson(
 
   if (currentError) throw currentError;
   const currentPerson = mapPerson(current as Record<string, unknown>);
+
+  if (currentPerson.is_admin) {
+    throw new AppError("failedRename");
+  }
+
+  if (trimmed.toLowerCase() === ADMIN_PARTICIPANT_NAME.toLowerCase()) {
+    throw new AppError("nameTaken");
+  }
 
   if (currentPerson.name.toLowerCase() === trimmed.toLowerCase()) {
     const { data, error } = await supabase

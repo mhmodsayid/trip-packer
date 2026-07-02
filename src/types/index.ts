@@ -11,6 +11,7 @@ export interface Person {
   name: string;
   active_session_id?: string | null;
   last_active_at?: string | null;
+  is_admin?: boolean;
   created_at: string;
 }
 

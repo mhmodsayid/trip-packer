@@ -1,4 +1,5 @@
 import { generatePin } from "./pin";
+import { visiblePeople } from "./people";
 import { getServerSupabase } from "./admin-supabase";
 import { TABLES } from "./tables";
 import type { Item, Person, Trip } from "@/types";
@@ -26,7 +27,7 @@ export async function listTripsAdmin(): Promise<AdminTripSummary[]> {
     await Promise.all([
       supabase.from(TABLES.trips).select("*").order("created_at", { ascending: false }),
       supabase.from(TABLES.items).select("trip_id"),
-      supabase.from(TABLES.people).select("trip_id"),
+      supabase.from(TABLES.people).select("trip_id, is_admin"),
     ]);
 
   if (tripsError) throw tripsError;
@@ -38,6 +39,7 @@ export async function listTripsAdmin(): Promise<AdminTripSummary[]> {
     itemCounts.set(row.trip_id, (itemCounts.get(row.trip_id) ?? 0) + 1);
   }
   for (const row of people ?? []) {
+    if (row.is_admin) continue;
     peopleCounts.set(row.trip_id, (peopleCounts.get(row.trip_id) ?? 0) + 1);
   }
 
@@ -65,7 +67,8 @@ export async function getTripAdminDetail(tripId: string): Promise<AdminTripDetai
   if (tripError) throw tripError;
   if (!trip) return null;
 
-  const peopleMap = new Map((people ?? []).map((p) => [p.id, p.name]));
+  const allPeople = (people ?? []) as Person[];
+  const peopleMap = new Map(allPeople.map((p) => [p.id, p.name]));
 
   const enriched: AdminItemRow[] = (items ?? []).map((item) => ({
     ...(item as Item),
@@ -81,7 +84,7 @@ export async function getTripAdminDetail(tripId: string): Promise<AdminTripDetai
   return {
     trip: trip as Trip,
     items: enriched,
-    people: (people ?? []) as Person[],
+    people: visiblePeople(allPeople),
   };
 }
 

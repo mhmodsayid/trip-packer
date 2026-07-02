@@ -15,6 +15,7 @@ create table if not exists tp_people (
   name text not null,
   active_session_id text,
   last_active_at timestamptz,
+  is_admin boolean not null default false,
   created_at timestamptz default now()
 );
 
