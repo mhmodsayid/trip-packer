@@ -1,4 +1,6 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { AppError } from "./errors";
+import { resolveSupabaseConfig } from "./supabase-config";
 
 let client: SupabaseClient | null = null;
 
@@ -9,33 +11,15 @@ export function getSupabase(): SupabaseClient {
 
   if (client) return client;
 
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (
-    !url ||
-    !key ||
-    url.includes("your-project") ||
-    key.includes("your-anon") ||
-    key.includes("PASTE_ANON")
-  ) {
-    throw new Error(
-      "Missing Supabase configuration. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local"
-    );
+  const config = resolveSupabaseConfig();
+  if (!config) {
+    throw new AppError("missingSupabase");
   }
 
-  client = createClient(url, key);
+  client = createClient(config.url, config.key);
   return client;
 }
 
 export function isSupabaseConfigured(): boolean {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  return Boolean(
-    url &&
-      key &&
-      !url.includes("your-project") &&
-      !key.includes("your-anon") &&
-      !key.includes("PASTE_ANON")
-  );
+  return resolveSupabaseConfig() !== null;
 }

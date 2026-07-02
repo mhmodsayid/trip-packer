@@ -27,15 +27,16 @@ npm install
 
 ### 2. Set up Supabase
 
-This app uses **prefixed tables** (`tp_trips`, `tp_people`, `tp_items`) so it can share a Supabase Postgres instance with other apps (e.g. m3alm_al_aksa) without touching their tables.
-
-1. Use your existing Supabase project (or create a new one).
+1. Create a dedicated Supabase project for trip-packer.
 2. Open **SQL Editor** and run the entire contents of [`supabase/schema.sql`](supabase/schema.sql).
+   - Creates `tp_trips`, `tp_people`, and `tp_items`
+   - Enables Realtime on `tp_items` and `tp_people`
+   - Sets permissive RLS policies for anonymous access (see security note in the SQL file)
 3. Go to **Project Settings → API** and copy:
    - **Project URL** → `NEXT_PUBLIC_SUPABASE_URL`
-   - **anon public** key → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - **Publishable key** (`sb_publishable_...`) → `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
 
-> **Note:** Apps that use Prisma with `DATABASE_URL` only (no Supabase JS client) still have these API keys in the dashboard — they are just not stored in the repo.
+Legacy projects may use `NEXT_PUBLIC_SUPABASE_ANON_KEY` instead; the app accepts either.
 
 ### 3. Configure environment variables
 
@@ -49,7 +50,7 @@ Edit `.env.local`:
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://xxxxxxxx.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
 ```
 
 ### 4. Run the dev server
@@ -73,7 +74,7 @@ npm start
 2. Import the project in [Vercel](https://vercel.com/new).
 3. Add the same environment variables in **Project Settings → Environment Variables**:
    - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (or `NEXT_PUBLIC_SUPABASE_ANON_KEY` on legacy projects)
 4. Deploy. Vercel detects Next.js automatically.
 
 ## How the join link & PIN flow works

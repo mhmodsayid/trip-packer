@@ -100,7 +100,7 @@ const translations = {
       noValidRows: "No valid rows found. Expected columns: name, quantity, category.",
       failedImport: "Failed to import file.",
       missingSupabase:
-        "Missing Supabase configuration. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local",
+        "Missing Supabase configuration. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY in .env.local",
     },
   },
   ar: {
@@ -199,7 +199,7 @@ const translations = {
       noValidRows: "لم يُعثر على صفوف صالحة. الأعمدة المتوقعة: name، quantity، category.",
       failedImport: "فشل استيراد الملف.",
       missingSupabase:
-        "إعداد Supabase ناقص. اضبط NEXT_PUBLIC_SUPABASE_URL و NEXT_PUBLIC_SUPABASE_ANON_KEY في .env.local",
+        "إعداد Supabase ناقص. اضبط NEXT_PUBLIC_SUPABASE_URL و NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY في .env.local",
     },
   },
 } as const;

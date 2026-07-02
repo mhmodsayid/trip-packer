@@ -1,5 +1,5 @@
--- trip-packer schema (tp_ prefix — safe to run alongside other apps in the same Supabase DB)
--- Run this in the Supabase SQL editor.
+-- trip-packer schema (tp_ prefix)
+-- Run this in the Supabase SQL editor for your trip-packer project.
 
 -- Tables
 create table if not exists tp_trips (
@@ -43,7 +43,7 @@ alter publication supabase_realtime add table tp_people;
 -- SECURITY TRADE-OFF: There is no user authentication. Access control relies on
 -- the unguessable trip UUID and PIN in the join link. Anyone who knows both can
 -- read and modify trip data. This is intentional for a lightweight coordination app.
--- m3alm_al_aksa uses Prisma with direct Postgres (server-side); trip-packer uses
+-- m3alm_al_aksa and similar apps may use Prisma with direct Postgres; trip-packer uses
 -- the Supabase anon key with permissive RLS for browser clients.
 alter table tp_trips enable row level security;
 alter table tp_people enable row level security;
