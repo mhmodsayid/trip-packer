@@ -16,6 +16,8 @@ import {
 
   adminDeleteTripAction,
 
+  adminLogoutPersonAction,
+
   adminRegeneratePinAction,
 
   adminRenameTripAction,
@@ -64,7 +66,15 @@ export function AdminTripDetailView({ detail }: AdminTripDetailViewProps) {
 
   const [removeError, setRemoveError] = useState<string | null>(null);
 
+  const [logoutTarget, setLogoutTarget] = useState<Person | null>(null);
+
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const [logoutError, setLogoutError] = useState<string | null>(null);
+
   const removeTriggerRef = useRef<HTMLButtonElement>(null);
+
+  const logoutTriggerRef = useRef<HTMLButtonElement>(null);
 
 
 
@@ -135,6 +145,60 @@ export function AdminTripDetailView({ detail }: AdminTripDetailViewProps) {
     } finally {
 
       setRemoving(false);
+
+    }
+
+  }
+
+
+
+  function openLogoutPerson(person: Person) {
+
+    setLogoutError(null);
+
+    setLogoutTarget(person);
+
+  }
+
+
+
+  function closeLogoutPerson() {
+
+    if (loggingOut) return;
+
+    setLogoutTarget(null);
+
+    setLogoutError(null);
+
+  }
+
+
+
+  async function confirmLogoutPerson() {
+
+    if (!logoutTarget || loggingOut) return;
+
+
+
+    setLoggingOut(true);
+
+    setLogoutError(null);
+
+    try {
+
+      await adminLogoutPersonAction(trip.id, logoutTarget.id);
+
+      setLogoutTarget(null);
+
+      router.refresh();
+
+    } catch (err) {
+
+      setLogoutError(formatError(err, te, "failedLogoutPerson"));
+
+    } finally {
+
+      setLoggingOut(false);
 
     }
 
@@ -264,18 +328,34 @@ export function AdminTripDetailView({ detail }: AdminTripDetailViewProps) {
 
                 <span className="text-sm font-medium text-foreground">{p.name}</span>
 
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="text-red-600 hover:bg-red-50 hover:text-red-700"
-                  onClick={(e) => {
-                    removeTriggerRef.current = e.currentTarget;
-                    openRemovePerson(p);
-                  }}
-                >
-                  {t("adminRemovePerson")}
-                </Button>
+                <div className="flex flex-wrap items-center gap-1">
+                  {p.active_session_id && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="text-muted hover:text-foreground"
+                      onClick={(e) => {
+                        logoutTriggerRef.current = e.currentTarget;
+                        openLogoutPerson(p);
+                      }}
+                    >
+                      {t("adminLogoutPerson")}
+                    </Button>
+                  )}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                    onClick={(e) => {
+                      removeTriggerRef.current = e.currentTarget;
+                      openRemovePerson(p);
+                    }}
+                  >
+                    {t("adminRemovePerson")}
+                  </Button>
+                </div>
 
               </li>
 
@@ -541,6 +621,45 @@ export function AdminTripDetailView({ detail }: AdminTripDetailViewProps) {
 
         </div>
 
+      </Modal>
+
+      <Modal
+        open={logoutTarget != null}
+        onClose={closeLogoutPerson}
+        title={t("adminLogoutPersonTitle")}
+        returnFocusRef={logoutTriggerRef}
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-foreground">
+            {logoutTarget
+              ? t("adminLogoutPersonConfirm", { name: logoutTarget.name })
+              : ""}
+          </p>
+
+          {logoutError && (
+            <p className="animate-toast-in text-sm text-red-600" role="alert">
+              {logoutError}
+            </p>
+          )}
+
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={closeLogoutPerson}
+              disabled={loggingOut}
+            >
+              {t("cancel")}
+            </Button>
+            <Button type="button" onClick={confirmLogoutPerson} disabled={loggingOut}>
+              {loggingOut ? (
+                <Spinner label={t("loading")} />
+              ) : (
+                t("adminLogoutPerson")
+              )}
+            </Button>
+          </div>
+        </div>
       </Modal>
 
     </div>

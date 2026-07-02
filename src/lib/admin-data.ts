@@ -135,3 +135,15 @@ export async function adminDeletePerson(personId: string): Promise<void> {
   const { error } = await supabase.from(TABLES.people).delete().eq("id", personId);
   if (error) throw error;
 }
+
+export async function adminLogoutPerson(personId: string): Promise<void> {
+  const supabase = getServerSupabase();
+  const { data, error } = await supabase
+    .from(TABLES.people)
+    .update({ active_session_id: null, last_active_at: null })
+    .eq("id", personId)
+    .select("id");
+
+  if (error) throw error;
+  if (!data?.length) throw new Error("Person not found");
+}

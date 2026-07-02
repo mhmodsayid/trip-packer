@@ -14,6 +14,7 @@ import {
   adminDeleteItem,
   adminDeletePerson,
   adminDeleteTrip,
+  adminLogoutPerson,
   adminRegenerateTripPin,
   adminUpdateItem,
   adminUpdateTrip,
@@ -126,6 +127,13 @@ export async function adminDeleteItemAction(tripId: string, itemId: string) {
 export async function adminDeletePersonAction(tripId: string, personId: string) {
   await requireAdmin();
   await adminDeletePerson(personId);
+  revalidatePath("/admin");
+  revalidatePath(`/admin/trips/${tripId}`);
+}
+
+export async function adminLogoutPersonAction(tripId: string, personId: string) {
+  await requireAdmin();
+  await adminLogoutPerson(personId);
   revalidatePath("/admin");
   revalidatePath(`/admin/trips/${tripId}`);
 }
