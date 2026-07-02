@@ -77,12 +77,12 @@ export function Card({
   );
 }
 
-export function Spinner({ className = "" }: { className?: string }) {
+export function Spinner({ className = "", label = "Loading" }: { className?: string; label?: string }) {
   return (
     <div
       className={`inline-block h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent ${className}`}
       role="status"
-      aria-label="Loading"
+      aria-label={label}
     />
   );
 }

@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { Button, Card } from "./ui";
+import { useTranslation } from "@/components/LanguageProvider";
 
 interface ShareLinkProps {
   url: string;
@@ -10,6 +11,7 @@ interface ShareLinkProps {
 }
 
 export function ShareLink({ url, pin }: ShareLinkProps) {
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
 
@@ -42,16 +44,16 @@ export function ShareLink({ url, pin }: ShareLinkProps) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // fallback: select text
+      // fallback
     }
   }
 
   return (
     <Card className="space-y-4">
       <div>
-        <h3 className="text-sm font-semibold text-foreground">Share join link</h3>
+        <h3 className="text-sm font-semibold text-foreground">{t("shareLinkTitle")}</h3>
         <p className="mt-1 text-sm text-muted">
-          PIN: <span className="font-mono font-semibold tracking-widest">{pin}</span>
+          {t("pinLabel")}: <span className="font-mono font-semibold tracking-widest">{pin}</span>
         </p>
       </div>
 
@@ -59,7 +61,7 @@ export function ShareLink({ url, pin }: ShareLinkProps) {
         {qrDataUrl && (
           <Image
             src={qrDataUrl}
-            alt="QR code for join link"
+            alt={t("qrAlt")}
             className="mx-auto rounded-lg border border-border sm:mx-0"
             width={180}
             height={180}
@@ -71,7 +73,7 @@ export function ShareLink({ url, pin }: ShareLinkProps) {
             {url}
           </div>
           <Button onClick={handleCopy} variant="secondary" className="w-full sm:w-auto">
-            {copied ? "Copied!" : "Copy link"}
+            {copied ? t("copied") : t("copyLink")}
           </Button>
         </div>
       </div>

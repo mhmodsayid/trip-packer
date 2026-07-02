@@ -3,7 +3,9 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ConfigWarning } from "@/components/ConfigWarning";
+import { useTranslation } from "@/components/LanguageProvider";
 import { Button, Card, Input, Spinner } from "@/components/ui";
+import { formatError } from "@/lib/errors";
 import { pinsMatch } from "@/lib/pin";
 import { setStoredPerson } from "@/lib/storage";
 import { isSupabaseConfigured } from "@/lib/supabase";
@@ -16,6 +18,7 @@ interface JoinFormProps {
 export function JoinForm({ params }: JoinFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t, te } = useTranslation();
   const [tripId, setTripId] = useState<string | null>(null);
   const [tripName, setTripName] = useState<string | null>(null);
   const [name, setName] = useState("");
@@ -37,7 +40,7 @@ export function JoinForm({ params }: JoinFormProps) {
     }
 
     if (!pin) {
-      setError("Missing PIN in the link. Ask the trip organizer for the full join link.");
+      setError(te("missingPin"));
       setLoading(false);
       return;
     }
@@ -46,21 +49,21 @@ export function JoinForm({ params }: JoinFormProps) {
     getTrip(tripId)
       .then((trip) => {
         if (!trip) {
-          setError("Trip not found.");
+          setError(te("tripNotFound"));
           return;
         }
         if (!pinsMatch(trip.pin, pin)) {
-          setError("Invalid PIN. Check the link and try again.");
+          setError(te("invalidPin"));
           return;
         }
         setTripName(trip.name);
         setPinValid(true);
       })
       .catch((err) => {
-        setError(err instanceof Error ? err.message : "Failed to validate trip.");
+        setError(formatError(err, te, "failedValidateTrip"));
       })
       .finally(() => setLoading(false));
-  }, [tripId, pin]);
+  }, [tripId, pin, te]);
 
   async function handleJoin(e: FormEvent) {
     e.preventDefault();
@@ -77,7 +80,7 @@ export function JoinForm({ params }: JoinFormProps) {
       setStoredPerson(tripId, { id: person.id, name: person.name });
       router.replace(`/t/${tripId}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to join trip.");
+      setError(formatError(err, te, "failedJoinTrip"));
       setSubmitting(false);
     }
   }
@@ -93,7 +96,7 @@ export function JoinForm({ params }: JoinFormProps) {
   if (loading) {
     return (
       <main className="flex min-h-dvh items-center justify-center">
-        <Spinner className="h-8 w-8 text-primary" />
+        <Spinner label={t("loading")} className="h-8 w-8 text-primary" />
       </main>
     );
   }
@@ -102,10 +105,10 @@ export function JoinForm({ params }: JoinFormProps) {
     return (
       <main className="mx-auto max-w-md px-4 py-12">
         <Card>
-          <h1 className="text-xl font-bold">Can&apos;t join trip</h1>
+          <h1 className="text-xl font-bold">{t("cantJoin")}</h1>
           <p className="mt-2 text-red-600">{error}</p>
           <Button className="mt-4" variant="secondary" onClick={() => router.push("/")}>
-            Go home
+            {t("goHome")}
           </Button>
         </Card>
       </main>
@@ -115,10 +118,11 @@ export function JoinForm({ params }: JoinFormProps) {
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-4 py-12">
       <div className="mb-6 text-center">
-        <h1 className="text-2xl font-bold">Join trip</h1>
+        <h1 className="text-2xl font-bold">{t("joinTrip")}</h1>
         {tripName && (
           <p className="mt-2 text-muted">
-            You&apos;re joining <span className="font-medium text-foreground">{tripName}</span>
+            {t("joiningTrip")}{" "}
+            <span className="font-medium text-foreground">{tripName}</span>
           </p>
         )}
       </div>
@@ -127,11 +131,11 @@ export function JoinForm({ params }: JoinFormProps) {
         <form onSubmit={handleJoin} className="space-y-4">
           <div>
             <label htmlFor="name" className="text-sm font-medium">
-              Your name
+              {t("yourName")}
             </label>
             <Input
               id="name"
-              placeholder="Enter your name"
+              placeholder={t("namePlaceholder")}
               value={name}
               onChange={(e) => setName(e.target.value)}
               disabled={submitting}
@@ -140,7 +144,7 @@ export function JoinForm({ params }: JoinFormProps) {
             />
           </div>
           <Button type="submit" className="w-full" disabled={submitting || !name.trim()}>
-            {submitting ? <Spinner /> : "Join trip"}
+            {submitting ? <Spinner label={t("loading")} /> : t("joinTripButton")}
           </Button>
         </form>
         {error && <p className="mt-3 text-sm text-red-600">{error}</p>}

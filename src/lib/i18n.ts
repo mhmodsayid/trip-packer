@@ -1,0 +1,251 @@
+export type Locale = "ar" | "en";
+
+export const LOCALE_STORAGE_KEY = "trip-packer:locale";
+export const DEFAULT_LOCALE: Locale = "ar";
+
+const translations = {
+  en: {
+    appTitle: "Trip Packer",
+    appTagline: "Create a shared packing list. Everyone claims what they'll bring.",
+    appTaglineShort: "Coordinate what everyone brings on your next adventure.",
+
+    langArabic: "العربية",
+    langEnglish: "English",
+    switchLanguage: "Switch language",
+
+    createTrip: "Create a new trip",
+    tripNamePlaceholder: "Trip name (e.g. Yosemite Camping)",
+    createTripButton: "Create trip",
+    joinExisting: "Join an existing trip",
+    joinLinkPlaceholder: "Paste join link...",
+    openLink: "Open link",
+    tripCreated: "Trip created!",
+    tripCreatedHint: "Share the link below so others can join",
+    continueToList: "Continue to packing list",
+
+    joinTrip: "Join trip",
+    joinTripButton: "Join trip",
+    yourName: "Your name",
+    namePlaceholder: "Enter your name",
+    joiningTrip: "You're joining",
+    cantJoin: "Can't join trip",
+    goHome: "Go home",
+
+    signedInAs: "Signed in as",
+    shareJoinLink: "Share join link",
+    hideShareLink: "Hide share link",
+    packingList: "Packing list",
+
+    filterAll: "All",
+    filterUnclaimed: "Unclaimed",
+    filterMine: "Mine",
+    searchPlaceholder: "Search items...",
+    noItemsYet: "No items yet. Add some below!",
+    noItemsMatch: "No items match your filter.",
+    unclaimed: "Unclaimed",
+    you: "You",
+    unknown: "Unknown",
+    claim: "Claim",
+    unclaim: "Unclaim",
+    delete: "Delete",
+
+    addItems: "Add items",
+    addItemsHint: "Paste a list, upload a spreadsheet, or quick-add one item.",
+    quickAddPlaceholder: "Quick add an item...",
+    add: "Add",
+    pasteList: "Paste list",
+    pastePlaceholder:
+      "One item per line. Formats:\n• Tent\n• Sleeping bag x2\n• Headlamp #gear\n• Water bottle, 3, drinks\n• Snacks\t2\tfood",
+    preview: "Preview",
+    addFromPaste: "Add from paste",
+    uploadSpreadsheet: "Upload Excel / CSV",
+    uploadHint: "Header row with columns: name, quantity (optional), category (optional).",
+    itemsReady: "{{count}} items ready",
+    itemReady: "1 item ready",
+    andMore: "…and {{count}} more",
+
+    shareLinkTitle: "Share join link",
+    pinLabel: "PIN",
+    qrAlt: "QR code for join link",
+    copyLink: "Copy link",
+    copied: "Copied!",
+
+    configTitle: "Supabase not configured",
+    configBody:
+      "Copy .env.example to .env.local and set your Supabase URL and anon key. See the README for setup steps.",
+
+    loading: "Loading",
+
+    itemAdded: "Item added.",
+    addedItems: "Added {{count}} items.",
+    addedItem: "Added 1 item.",
+    importedItems: "Imported {{count}} items from {{file}}.",
+    importedItem: "Imported 1 item from {{file}}.",
+
+    errors: {
+      failedCreateTrip: "Failed to create trip.",
+      invalidJoinLink: "Enter a valid join link URL.",
+      tripNotFound: "Trip not found.",
+      failedLoadTrip: "Failed to load trip.",
+      missingPin: "Missing PIN in the link. Ask the trip organizer for the full join link.",
+      invalidPin: "Invalid PIN. Check the link and try again.",
+      failedValidateTrip: "Failed to validate trip.",
+      failedJoinTrip: "Failed to join trip.",
+      actionFailed: "Action failed.",
+      itemAlreadyClaimed: "Item is already claimed.",
+      couldNotUnclaim: "Could not unclaim item.",
+      noValidItems: "No valid items found. Check the format.",
+      failedAddItems: "Failed to add items.",
+      failedAddItem: "Failed to add item.",
+      noValidRows: "No valid rows found. Expected columns: name, quantity, category.",
+      failedImport: "Failed to import file.",
+      missingSupabase:
+        "Missing Supabase configuration. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local",
+    },
+  },
+  ar: {
+    appTitle: "مُنَظِّم الرحلة",
+    appTagline: "أنشئ قائمة تعبئة مشتركة. كل شخص يختار ما سيحضره.",
+    appTaglineShort: "نسّق ما يحضره الجميع في رحلتك القادمة.",
+
+    langArabic: "العربية",
+    langEnglish: "English",
+    switchLanguage: "تغيير اللغة",
+
+    createTrip: "إنشاء رحلة جديدة",
+    tripNamePlaceholder: "اسم الرحلة (مثال: camping Yosemite)",
+    createTripButton: "إنشاء الرحلة",
+    joinExisting: "الانضمام لرحلة موجودة",
+    joinLinkPlaceholder: "الصق رابط الانضمام...",
+    openLink: "فتح الرابط",
+    tripCreated: "تم إنشاء الرحلة!",
+    tripCreatedHint: "شارك الرابط أدناه لينضم الآخرون إلى",
+    continueToList: "متابعة إلى قائمة التعبئة",
+
+    joinTrip: "الانضمام للرحلة",
+    joinTripButton: "انضم للرحلة",
+    yourName: "اسمك",
+    namePlaceholder: "أدخل اسمك",
+    joiningTrip: "أنت تنضم إلى",
+    cantJoin: "تعذّر الانضمام",
+    goHome: "الصفحة الرئيسية",
+
+    signedInAs: "مسجّل باسم",
+    shareJoinLink: "مشاركة رابط الانضمام",
+    hideShareLink: "إخفاء رابط المشاركة",
+    packingList: "قائمة التعبئة",
+
+    filterAll: "الكل",
+    filterUnclaimed: "غير محجوز",
+    filterMine: "محجوز لي",
+    searchPlaceholder: "ابحث في العناصر...",
+    noItemsYet: "لا توجد عناصر بعد. أضف بعضها أدناه!",
+    noItemsMatch: "لا توجد عناصر تطابق التصفية.",
+    unclaimed: "غير محجوز",
+    you: "أنت",
+    unknown: "غير معروف",
+    claim: "احجز",
+    unclaim: "إلغاء الحجز",
+    delete: "حذف",
+
+    addItems: "إضافة عناصر",
+    addItemsHint: "الصق قائمة، ارفع جدول بيانات، أو أضف عنصراً واحداً بسرعة.",
+    quickAddPlaceholder: "إضافة سريعة لعنصر...",
+    add: "إضافة",
+    pasteList: "لصق قائمة",
+    pastePlaceholder:
+      "عنصر واحد في كل سطر. الصيغ:\n• خيمة\n• كيس نوم x2\n• مصباح #معدات\n• زجاجة ماء، 3، مشروبات\n• وجبات\t2\tطعام",
+    preview: "معاينة",
+    addFromPaste: "إضافة من اللصق",
+    uploadSpreadsheet: "رفع Excel / CSV",
+    uploadHint: "صف عناوين بالأعمدة: name، quantity (اختياري)، category (اختياري).",
+    itemsReady: "{{count}} عناصر جاهزة",
+    itemReady: "عنصر واحد جاهز",
+    andMore: "…و{{count}} أخرى",
+
+    shareLinkTitle: "مشاركة رابط الانضمام",
+    pinLabel: "رمز PIN",
+    qrAlt: "رمز QR لرابط الانضمام",
+    copyLink: "نسخ الرابط",
+    copied: "تم النسخ!",
+
+    configTitle: "Supabase غير مُعدّ",
+    configBody:
+      "انسخ .env.example إلى .env.local واضبط رابط Supabase ومفتاح anon. راجع README لخطوات الإعداد.",
+
+    loading: "جاري التحميل",
+
+    itemAdded: "تمت إضافة العنصر.",
+    addedItems: "تمت إضافة {{count}} عناصر.",
+    addedItem: "تمت إضافة عنصر واحد.",
+    importedItems: "تم استيراد {{count}} عناصر من {{file}}.",
+    importedItem: "تم استيراد عنصر واحد من {{file}}.",
+
+    errors: {
+      failedCreateTrip: "فشل إنشاء الرحلة.",
+      invalidJoinLink: "أدخل رابط انضمام صالح.",
+      tripNotFound: "الرحلة غير موجودة.",
+      failedLoadTrip: "فشل تحميل الرحلة.",
+      missingPin: "رمز PIN مفقود من الرابط. اطلب رابط الانضمام الكامل من منظم الرحلة.",
+      invalidPin: "رمز PIN غير صحيح. تحقق من الرابط وحاول مجدداً.",
+      failedValidateTrip: "فشل التحقق من الرحلة.",
+      failedJoinTrip: "فشل الانضمام للرحلة.",
+      actionFailed: "فشلت العملية.",
+      itemAlreadyClaimed: "العنصر محجوز بالفعل.",
+      couldNotUnclaim: "تعذّر إلغاء الحجز.",
+      noValidItems: "لم يُعثر على عناصر صالحة. تحقق من الصيغة.",
+      failedAddItems: "فشلت إضافة العناصر.",
+      failedAddItem: "فشلت إضافة العنصر.",
+      noValidRows: "لم يُعثر على صفوف صالحة. الأعمدة المتوقعة: name، quantity، category.",
+      failedImport: "فشل استيراد الملف.",
+      missingSupabase:
+        "إعداد Supabase ناقص. اضبط NEXT_PUBLIC_SUPABASE_URL و NEXT_PUBLIC_SUPABASE_ANON_KEY في .env.local",
+    },
+  },
+} as const;
+
+type MessageMap = typeof translations.en;
+export type TranslationKey = {
+  [K in keyof MessageMap]: MessageMap[K] extends string ? K : never;
+}[keyof MessageMap];
+
+export type ErrorKey = keyof typeof translations.en.errors;
+
+export function isLocale(value: string): value is Locale {
+  return value === "ar" || value === "en";
+}
+
+export function getStoredLocale(): Locale {
+  if (typeof window === "undefined") return DEFAULT_LOCALE;
+  try {
+    const stored = localStorage.getItem(LOCALE_STORAGE_KEY);
+    if (stored && isLocale(stored)) return stored;
+  } catch {
+    // ignore
+  }
+  return DEFAULT_LOCALE;
+}
+
+type Params = Record<string, string | number>;
+
+export function translate(
+  locale: Locale,
+  key: TranslationKey,
+  params?: Params
+): string {
+  const value = translations[locale][key];
+  const text = typeof value === "string" ? value : String(value);
+  if (!params) return text;
+  return Object.entries(params).reduce(
+    (result, [name, val]) => result.replace(`{{${name}}}`, String(val)),
+    text
+  );
+}
+
+export function translateError(locale: Locale, code: ErrorKey): string {
+  return translations[locale].errors[code];
+}
+
+export function localeDirection(locale: Locale): "rtl" | "ltr" {
+  return locale === "ar" ? "rtl" : "ltr";
+}

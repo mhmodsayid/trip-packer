@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Cairo, Geist, Geist_Mono } from "next/font/google";
+import { LanguageProvider } from "@/components/LanguageProvider";
+import { PageHeader } from "@/components/LanguageSwitcher";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -12,9 +14,15 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const cairo = Cairo({
+  variable: "--font-arabic",
+  subsets: ["arabic", "latin"],
+  weight: ["400", "500", "600", "700"],
+});
+
 export const metadata: Metadata = {
-  title: "Trip Packer",
-  description: "Coordinate what to bring on your next trip",
+  title: "مُنَظِّم الرحلة | Trip Packer",
+  description: "نسّق ما يحضره الجميع في رحلتك — Coordinate what everyone brings on your trip",
 };
 
 export const viewport: Viewport = {
@@ -29,11 +37,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="ar" dir="rtl" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${cairo.variable} antialiased`}
       >
-        <div className="min-h-dvh safe-bottom">{children}</div>
+        <LanguageProvider>
+          <PageHeader />
+          {children}
+        </LanguageProvider>
       </body>
     </html>
   );

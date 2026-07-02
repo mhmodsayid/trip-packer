@@ -1,4 +1,5 @@
 import { getSupabase } from "./supabase";
+import { AppError } from "./errors";
 import { generatePin } from "./pin";
 import { TABLES } from "./tables";
 import type { Item, Person, Trip } from "@/types";
@@ -111,7 +112,7 @@ export async function claimItem(
     .select("id");
 
   if (error) throw error;
-  if (!data?.length) throw new Error("Item is already claimed.");
+  if (!data?.length) throw new AppError("itemAlreadyClaimed");
 }
 
 export async function unclaimItem(itemId: string, personId: string): Promise<void> {
@@ -124,7 +125,7 @@ export async function unclaimItem(itemId: string, personId: string): Promise<voi
     .select("id");
 
   if (error) throw error;
-  if (!data?.length) throw new Error("Could not unclaim item.");
+  if (!data?.length) throw new AppError("couldNotUnclaim");
 }
 
 export async function deleteItem(itemId: string): Promise<void> {

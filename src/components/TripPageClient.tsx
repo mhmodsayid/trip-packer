@@ -6,7 +6,9 @@ import { AddItemsPanel } from "@/components/AddItemsPanel";
 import { ConfigWarning } from "@/components/ConfigWarning";
 import { ItemList } from "@/components/ItemList";
 import { ShareLink } from "@/components/ShareLink";
+import { useTranslation } from "@/components/LanguageProvider";
 import { Button, Card, Spinner } from "@/components/ui";
+import { formatError } from "@/lib/errors";
 import { buildJoinUrl, getStoredPerson } from "@/lib/storage";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import {
@@ -28,6 +30,7 @@ interface TripPageClientProps {
 
 export function TripPageClient({ tripId }: TripPageClientProps) {
   const router = useRouter();
+  const { t, te } = useTranslation();
   const [trip, setTrip] = useState<Trip | null>(null);
   const [items, setItems] = useState<Item[]>([]);
   const [people, setPeople] = useState<Person[]>([]);
@@ -47,7 +50,7 @@ export function TripPageClient({ tripId }: TripPageClientProps) {
       ]);
 
       if (!tripData) {
-        setError("Trip not found.");
+        setError(te("tripNotFound"));
         return;
       }
 
@@ -56,9 +59,9 @@ export function TripPageClient({ tripId }: TripPageClientProps) {
       setPeople(peopleData);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load trip.");
+      setError(formatError(err, te, "failedLoadTrip"));
     }
-  }, [tripId]);
+  }, [tripId, te]);
 
   useEffect(() => {
     const stored = getStoredPerson(tripId);
@@ -102,7 +105,7 @@ export function TripPageClient({ tripId }: TripPageClientProps) {
   if (!person) {
     return (
       <main className="flex min-h-[50dvh] items-center justify-center">
-        <Spinner className="text-primary h-8 w-8" />
+        <Spinner label={t("loading")} className="h-8 w-8 text-primary" />
       </main>
     );
   }
@@ -110,7 +113,7 @@ export function TripPageClient({ tripId }: TripPageClientProps) {
   if (loading && !trip) {
     return (
       <main className="flex min-h-[50dvh] items-center justify-center">
-        <Spinner className="text-primary h-8 w-8" />
+        <Spinner label={t("loading")} className="h-8 w-8 text-primary" />
       </main>
     );
   }
@@ -119,9 +122,9 @@ export function TripPageClient({ tripId }: TripPageClientProps) {
     return (
       <main className="mx-auto max-w-2xl px-4 py-8">
         <Card>
-          <p className="text-red-600">{error ?? "Trip not found."}</p>
+          <p className="text-red-600">{error ?? te("tripNotFound")}</p>
           <Button className="mt-4" variant="secondary" onClick={() => router.push("/")}>
-            Go home
+            {t("goHome")}
           </Button>
         </Card>
       </main>
@@ -134,14 +137,19 @@ export function TripPageClient({ tripId }: TripPageClientProps) {
     <main className="mx-auto max-w-3xl px-4 py-6 sm:py-8">
       <header className="mb-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div>
+          <div className="min-w-0">
             <h1 className="text-2xl font-bold tracking-tight">{trip.name}</h1>
             <p className="mt-1 text-sm text-muted">
-              Signed in as <span className="font-medium text-foreground">{person.name}</span>
+              {t("signedInAs")}{" "}
+              <span className="font-medium text-foreground">{person.name}</span>
             </p>
           </div>
-          <Button variant="secondary" onClick={() => setShowShare((s) => !s)}>
-            {showShare ? "Hide share link" : "Share join link"}
+          <Button
+            variant="secondary"
+            onClick={() => setShowShare((s) => !s)}
+            className="shrink-0"
+          >
+            {showShare ? t("hideShareLink") : t("shareJoinLink")}
           </Button>
         </div>
       </header>
@@ -153,7 +161,7 @@ export function TripPageClient({ tripId }: TripPageClientProps) {
       )}
 
       <section className="mb-8">
-        <h2 className="mb-4 text-lg font-semibold">Packing list</h2>
+        <h2 className="mb-4 text-lg font-semibold">{t("packingList")}</h2>
         <ItemList
           items={items}
           people={people}
