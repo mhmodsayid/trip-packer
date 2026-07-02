@@ -12,6 +12,7 @@ import {
 } from "@/lib/admin-auth";
 import {
   adminDeleteItem,
+  adminDeletePerson,
   adminDeleteTrip,
   adminRegenerateTripPin,
   adminUpdateItem,
@@ -118,6 +119,13 @@ export async function adminUpdateItemAction(
 export async function adminDeleteItemAction(tripId: string, itemId: string) {
   await requireAdmin();
   await adminDeleteItem(itemId);
+  revalidatePath("/admin");
+  revalidatePath(`/admin/trips/${tripId}`);
+}
+
+export async function adminDeletePersonAction(tripId: string, personId: string) {
+  await requireAdmin();
+  await adminDeletePerson(personId);
   revalidatePath("/admin");
   revalidatePath(`/admin/trips/${tripId}`);
 }

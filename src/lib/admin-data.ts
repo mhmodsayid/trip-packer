@@ -126,3 +126,9 @@ export async function adminDeleteItem(itemId: string): Promise<void> {
   const { error } = await supabase.from(TABLES.items).delete().eq("id", itemId);
   if (error) throw error;
 }
+
+export async function adminDeletePerson(personId: string): Promise<void> {
+  const supabase = getServerSupabase();
+  const { error } = await supabase.from(TABLES.people).delete().eq("id", personId);
+  if (error) throw error;
+}

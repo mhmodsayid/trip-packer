@@ -161,6 +161,10 @@ const translations = {
     adminDeleteTripConfirm: 'Delete trip "{{name}}" and all its items and people?',
     adminPeopleList: "Participants",
     adminNoPeople: "No participants.",
+    adminRemovePerson: "Remove",
+    adminRemovePersonTitle: "Remove participant",
+    adminRemovePersonConfirm:
+      'Remove "{{name}}" from this trip? This also removes their payments and unassigns their items.',
     adminItemsList: "Items",
     adminNoItems: "No items.",
     adminItemName: "Name",
@@ -209,6 +213,7 @@ const translations = {
       failedAddPayment: "Failed to add payment.",
       failedUpdatePayment: "Failed to update payment.",
       failedDeletePayment: "Failed to delete payment.",
+      failedRemovePerson: "Failed to remove participant.",
       nameInUse:
         "This name is already logged in on another device. Log out there first, or choose another name.",
       nameTaken: "That name is already taken by someone else in this trip.",
@@ -376,6 +381,10 @@ const translations = {
     adminDeleteTripConfirm: 'حذف الرحلة "{{name}}" وجميع عناصرها وأشخاصها؟',
     adminPeopleList: "المشاركون",
     adminNoPeople: "لا يوجد مشاركون.",
+    adminRemovePerson: "إزالة",
+    adminRemovePersonTitle: "إزالة مشارك",
+    adminRemovePersonConfirm:
+      'إزالة "{{name}}" من هذه الرحلة؟ سيؤدي ذلك أيضاً إلى حذف مدفوعاته وإلغاء حجز عناصره.',
     adminItemsList: "العناصر",
     adminNoItems: "لا توجد عناصر.",
     adminItemName: "الاسم",
@@ -424,6 +433,7 @@ const translations = {
       failedAddPayment: "فشلت إضافة الدفعة.",
       failedUpdatePayment: "فشل تحديث الدفعة.",
       failedDeletePayment: "فشل حذف الدفعة.",
+      failedRemovePerson: "فشلت إزالة المشارك.",
       nameInUse:
         "هذا الاسم مسجّل دخوله على جهاز آخر. سجّل الخروج هناك أولاً، أو اختر اسماً آخر.",
       nameTaken: "هذا الاسم مستخدم بالفعل من شخص آخر في هذه الرحلة.",
