@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Cairo, Geist, Geist_Mono } from "next/font/google";
 import { LanguageProvider } from "@/components/LanguageProvider";
-import { PageHeader } from "@/components/LanguageSwitcher";
+import { PageHeader } from "@/components/PageHeader";
 import "./globals.css";
 
 const geistSans = Geist({

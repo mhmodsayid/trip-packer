@@ -51,7 +51,11 @@ Edit `.env.local`:
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://xxxxxxxx.supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
+ADMIN_PASSWORD=your-strong-password
+ADMIN_SESSION_SECRET=random-secret-for-cookie-signing
 ```
+
+Generate a long random string for each admin secret (e.g. `node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"`).
 
 ### 4. Run the dev server
 
@@ -75,7 +79,33 @@ npm start
 3. Add the same environment variables in **Project Settings → Environment Variables**:
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (or `NEXT_PUBLIC_SUPABASE_ANON_KEY` on legacy projects)
+   - `ADMIN_PASSWORD`
+   - `ADMIN_SESSION_SECRET`
 4. Deploy. Vercel detects Next.js automatically.
+
+## Admin
+
+Trip Packer includes a password-protected admin area at [`/admin/login`](http://localhost:3000/admin/login).
+
+### Environment variables (server-only)
+
+| Variable | Description |
+|----------|-------------|
+| `ADMIN_PASSWORD` | Password for the admin login form (never use `NEXT_PUBLIC_`) |
+| `ADMIN_SESSION_SECRET` | Secret used to HMAC-sign the `admin_session` httpOnly cookie |
+
+Set both in `.env.local` for development and in the **Vercel dashboard** for production.
+
+### What admin can do
+
+- View **all trips** with item/people counts, PIN, and created date
+- Open any trip to **rename** it, **set or regenerate PIN**, or **delete the entire trip**
+- **Edit any item** (name, quantity, category, assignment)
+- **Delete any item** regardless of who added it (bypasses the participant creator-only delete rule)
+
+### Security caveat
+
+Participant access uses permissive Supabase RLS with the public publishable key — anyone with a trip link can modify that trip's data directly via the API. The admin area adds a **server-verified session gate** (constant-time password check + signed cookie) so the management UI is not open to casual visitors. It does **not** change Supabase RLS; treat `ADMIN_PASSWORD` as sensitive and rotate it if exposed.
 
 ## How the join link & PIN flow works
 
@@ -116,9 +146,10 @@ This app uses **no user authentication**. Access control relies on the combinati
 
 ```
 src/
-  app/              # Next.js App Router pages
+  app/              # Next.js App Router pages (including /admin)
   components/       # UI components
-  lib/              # Supabase client, parsing, storage helpers
+  lib/              # Supabase client, parsing, storage, admin auth
+  middleware.ts     # Protects /admin routes (signed cookie)
   types/            # TypeScript types
 supabase/
   schema.sql        # Database schema (run in Supabase SQL editor)

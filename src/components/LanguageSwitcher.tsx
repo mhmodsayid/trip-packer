@@ -34,13 +34,3 @@ export function LanguageSwitcher({ className = "" }: { className?: string }) {
     </div>
   );
 }
-
-export function PageHeader() {
-  return (
-    <header className="sticky top-0 z-10 border-b border-border/60 bg-background/95 px-4 py-2 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-      <div className="mx-auto flex max-w-3xl justify-end">
-        <LanguageSwitcher />
-      </div>
-    </header>
-  );
-}
