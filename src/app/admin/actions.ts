@@ -98,6 +98,8 @@ export async function adminUpdateItemAction(
   const quantity = parseInt(String(formData.get("quantity") ?? "1"), 10);
   const categoryRaw = String(formData.get("category") ?? "").trim();
   const assignee = String(formData.get("assigned_person_id") ?? "");
+  const priceRaw = String(formData.get("price") ?? "").trim();
+  const price = priceRaw ? parseFloat(priceRaw.replace(",", ".")) : null;
 
   if (!name) return;
 
@@ -105,6 +107,7 @@ export async function adminUpdateItemAction(
     name,
     quantity: Number.isFinite(quantity) && quantity > 0 ? quantity : 1,
     category: categoryRaw || null,
+    price: price != null && Number.isFinite(price) && price >= 0 ? price : null,
     assigned_person_id: assignee || null,
   });
 

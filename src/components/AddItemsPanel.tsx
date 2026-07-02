@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import * as XLSX from "xlsx";
 import { useTranslation } from "@/components/LanguageProvider";
 import { formatError } from "@/lib/errors";
+import { parseAmountInput } from "@/lib/format-amount";
 import type { InsertItemsResult } from "@/lib/item-dedupe";
 import type { TranslationKey } from "@/lib/i18n";
 import { parseBulkText, parseSpreadsheetRows } from "@/lib/parse-items";
@@ -11,7 +12,12 @@ import { Button, Card, Input, Spinner, Textarea } from "./ui";
 
 interface AddItemsPanelProps {
   onAddItems: (
-    items: { name: string; quantity: number; category: string | null }[]
+    items: {
+      name: string;
+      quantity: number;
+      category: string | null;
+      price?: number | null;
+    }[]
   ) => Promise<InsertItemsResult>;
   onSuccess?: () => void;
   inModal?: boolean;
@@ -52,6 +58,7 @@ export function AddItemsPanel({
   const { t, te } = useTranslation();
   const [pasteText, setPasteText] = useState("");
   const [quickName, setQuickName] = useState("");
+  const [quickPrice, setQuickPrice] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [messageIsError, setMessageIsError] = useState(false);
@@ -98,12 +105,20 @@ export function AddItemsPanel({
     setLoading(true);
     setMessage(null);
     try {
-      const result = await onAddItems([{ name, quantity: 1, category: null }]);
+      const result = await onAddItems([
+        {
+          name,
+          quantity: 1,
+          category: null,
+          price: parseAmountInput(quickPrice),
+        },
+      ]);
       if (result.added === 0) {
         showError(t("itemAlreadyExists"));
         return;
       }
       setQuickName("");
+      setQuickPrice("");
       showSuccess(t("itemAdded"));
       onSuccess?.();
     } catch (err) {
@@ -174,17 +189,27 @@ export function AddItemsPanel({
       )}
       {inModal && <p className="text-sm text-muted">{t("addItemsHint")}</p>}
 
-      <form onSubmit={handleQuickAdd} className="flex gap-2">
-        <Input
-          placeholder={t("quickAddPlaceholder")}
-          value={quickName}
-          onChange={(e) => setQuickName(e.target.value)}
-          disabled={loading}
-          className="min-w-0 flex-1"
-        />
-        <Button type="submit" disabled={loading || !quickName.trim()} className="shrink-0">
-          {t("add")}
-        </Button>
+      <form onSubmit={handleQuickAdd} className="space-y-2">
+        <div className="flex gap-2">
+          <Input
+            placeholder={t("quickAddPlaceholder")}
+            value={quickName}
+            onChange={(e) => setQuickName(e.target.value)}
+            disabled={loading}
+            className="min-w-0 flex-1"
+          />
+          <Input
+            placeholder={t("pricePlaceholder")}
+            value={quickPrice}
+            onChange={(e) => setQuickPrice(e.target.value)}
+            disabled={loading}
+            inputMode="decimal"
+            className="w-24 shrink-0 sm:w-28"
+          />
+          <Button type="submit" disabled={loading || !quickName.trim()} className="shrink-0">
+            {t("add")}
+          </Button>
+        </div>
       </form>
 
       <div className="space-y-2">

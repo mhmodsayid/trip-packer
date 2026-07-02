@@ -126,7 +126,7 @@ export function AdminTripDetailView({ detail }: AdminTripDetailViewProps) {
                   </div>
                   <form
                     action={adminUpdateItemAction.bind(null, trip.id, item.id)}
-                    className="grid gap-2 sm:grid-cols-2 lg:grid-cols-5"
+                    className="grid gap-2 sm:grid-cols-2 lg:grid-cols-6"
                   >
                     <Input name="name" defaultValue={item.name} placeholder={t("adminItemName")} />
                     <Input
@@ -140,6 +140,12 @@ export function AdminTripDetailView({ detail }: AdminTripDetailViewProps) {
                       name="category"
                       defaultValue={item.category ?? ""}
                       placeholder={t("adminCategory")}
+                    />
+                    <Input
+                      name="price"
+                      defaultValue={item.price ?? ""}
+                      placeholder={t("priceLabel")}
+                      inputMode="decimal"
                     />
                     <select
                       name="assigned_person_id"

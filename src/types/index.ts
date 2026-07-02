@@ -18,8 +18,18 @@ export interface Item {
   name: string;
   quantity: number;
   category: string | null;
+  price: number | null;
   assigned_person_id: string | null;
   added_by_person_id: string | null;
+  created_at: string;
+}
+
+export interface Payment {
+  id: string;
+  trip_id: string;
+  person_id: string;
+  amount: number;
+  note: string | null;
   created_at: string;
 }
 
@@ -31,6 +41,7 @@ export interface ParsedItemInput {
   name: string;
   quantity: number;
   category: string | null;
+  price: number | null;
 }
 
 export interface StoredPerson {

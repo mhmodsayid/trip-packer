@@ -7,6 +7,8 @@ import { AddItemsPanel } from "@/components/AddItemsPanel";
 import { Modal } from "@/components/Modal";
 import { ConfigWarning } from "@/components/ConfigWarning";
 import { ItemList } from "@/components/ItemList";
+import { PaymentsPanel } from "@/components/PaymentsPanel";
+import { SettlementSummary } from "@/components/SettlementSummary";
 import { ShareLink } from "@/components/ShareLink";
 import { useTranslation } from "@/components/LanguageProvider";
 import { Button, Card, Spinner } from "@/components/ui";
@@ -14,19 +16,25 @@ import { formatError } from "@/lib/errors";
 import { buildJoinUrl, getStoredPerson, setStoredPerson } from "@/lib/storage";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import {
+  addPayment,
   claimItem,
   claimItems,
   deleteItem,
+  deletePayment,
   getItems,
+  getPayments,
   getPeople,
   getTrip,
   insertItems,
   renamePerson,
   subscribeToItems,
+  subscribeToPayments,
   subscribeToPeople,
   unclaimItem,
+  updateItemPrice,
+  updatePayment,
 } from "@/lib/trips";
-import type { Item, Person, Trip } from "@/types";
+import type { Item, Payment, Person, Trip } from "@/types";
 
 interface TripPageClientProps {
   tripId: string;
@@ -38,23 +46,27 @@ export function TripPageClient({ tripId }: TripPageClientProps) {
   const [trip, setTrip] = useState<Trip | null>(null);
   const [items, setItems] = useState<Item[]>([]);
   const [people, setPeople] = useState<Person[]>([]);
+  const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showShare, setShowShare] = useState(false);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [changeNameOpen, setChangeNameOpen] = useState(false);
+  const [summaryOpen, setSummaryOpen] = useState(false);
   const addButtonRef = useRef<HTMLButtonElement>(null);
   const changeNameRef = useRef<HTMLButtonElement>(null);
+  const summaryButtonRef = useRef<HTMLButtonElement>(null);
   const [person, setPerson] = useState<{ id: string; name: string } | null>(null);
 
   const loadData = useCallback(async () => {
     if (!isSupabaseConfigured()) return;
 
     try {
-      const [tripData, itemsData, peopleData] = await Promise.all([
+      const [tripData, itemsData, peopleData, paymentsData] = await Promise.all([
         getTrip(tripId),
         getItems(tripId),
         getPeople(tripId),
+        getPayments(tripId),
       ]);
 
       if (!tripData) {
@@ -65,6 +77,7 @@ export function TripPageClient({ tripId }: TripPageClientProps) {
       setTrip(tripData);
       setItems(itemsData);
       setPeople(peopleData);
+      setPayments(paymentsData);
       setError(null);
     } catch (err) {
       setError(formatError(err, te, "failedLoadTrip"));
@@ -95,10 +108,14 @@ export function TripPageClient({ tripId }: TripPageClientProps) {
     const unsubPeople = subscribeToPeople(tripId, () => {
       getPeople(tripId).then(setPeople).catch(console.error);
     });
+    const unsubPayments = subscribeToPayments(tripId, () => {
+      getPayments(tripId).then(setPayments).catch(console.error);
+    });
 
     return () => {
       unsubItems();
       unsubPeople();
+      unsubPayments();
     };
   }, [tripId, loadData]);
 
@@ -226,8 +243,32 @@ export function TripPageClient({ tripId }: TripPageClientProps) {
           onClaim={(id) => claimItem(id, person.id)}
           onUnclaim={(id) => unclaimItem(id, person.id)}
           onDelete={(id) => deleteItem(id, person.id)}
+          onUpdatePrice={(id, price) => updateItemPrice(id, price, person.id)}
           onClaimMany={(ids) => claimItems(ids, person.id)}
           loading={loading}
+        />
+      </section>
+
+      <section className="mb-8 space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold">{t("moneyTitle")}</h2>
+          <Button
+            ref={summaryButtonRef}
+            variant="secondary"
+            onClick={() => setSummaryOpen(true)}
+          >
+            {t("viewSummary")}
+          </Button>
+        </div>
+        <PaymentsPanel
+          payments={payments}
+          people={people}
+          currentPersonId={person.id}
+          onAdd={async (amount, note) => {
+            await addPayment(tripId, person.id, amount, note);
+          }}
+          onUpdate={(id, amount, note) => updatePayment(id, person.id, { amount, note })}
+          onDelete={(id) => deletePayment(id, person.id)}
         />
       </section>
 
@@ -255,6 +296,15 @@ export function TripPageClient({ tripId }: TripPageClientProps) {
           onAddItems={(newItems) => insertItems(tripId, person.id, newItems)}
           onSuccess={() => setAddModalOpen(false)}
         />
+      </Modal>
+
+      <Modal
+        open={summaryOpen}
+        onClose={() => setSummaryOpen(false)}
+        title={t("summaryTitle")}
+        returnFocusRef={summaryButtonRef}
+      >
+        <SettlementSummary people={people} items={items} payments={payments} />
       </Modal>
     </main>
   );

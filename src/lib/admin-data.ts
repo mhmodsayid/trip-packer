@@ -69,6 +69,7 @@ export async function getTripAdminDetail(tripId: string): Promise<AdminTripDetai
 
   const enriched: AdminItemRow[] = (items ?? []).map((item) => ({
     ...(item as Item),
+    price: item.price != null && item.price !== "" ? Number(item.price) : null,
     assignee_name: item.assigned_person_id
       ? peopleMap.get(item.assigned_person_id) ?? null
       : null,
@@ -111,6 +112,7 @@ export async function adminUpdateItem(
     name?: string;
     quantity?: number;
     category?: string | null;
+    price?: number | null;
     assigned_person_id?: string | null;
   }
 ): Promise<void> {

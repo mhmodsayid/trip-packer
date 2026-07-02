@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { FormEvent, useState, type CSSProperties } from "react";
 import type { Item } from "@/types";
 import { useTranslation } from "@/components/LanguageProvider";
-import { Badge, Button, Spinner } from "@/components/ui";
+import { formatAmount, parseAmountInput } from "@/lib/format-amount";
+import { Badge, Button, Input, Spinner } from "@/components/ui";
 
 type ItemStatus = "unclaimed" | "mine" | "assigned";
 
@@ -23,6 +24,7 @@ interface ItemRowProps {
   onClaim: () => void;
   onUnclaim: () => void;
   onDelete: () => void;
+  onUpdatePrice?: (price: number | null) => Promise<void>;
 }
 
 const statusStyles: Record<ItemStatus, string> = {
@@ -72,8 +74,12 @@ export function ItemRow({
   onClaim,
   onUnclaim,
   onDelete,
+  onUpdatePrice,
 }: ItemRowProps) {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
+  const [editingPrice, setEditingPrice] = useState(false);
+  const [priceInput, setPriceInput] = useState("");
+  const [priceBusy, setPriceBusy] = useState(false);
 
   const statusLabel =
     status === "unclaimed"
@@ -84,6 +90,27 @@ export function ItemRow({
 
   const statusBadgeVariant =
     status === "unclaimed" ? "warning" : status === "mine" ? "success" : "muted";
+
+  function openPriceEdit() {
+    setPriceInput(item.price != null ? String(item.price) : "");
+    setEditingPrice(true);
+  }
+
+  async function handlePriceSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (!onUpdatePrice) return;
+    const trimmed = priceInput.trim();
+    const parsed = trimmed === "" ? null : parseAmountInput(trimmed);
+    if (trimmed !== "" && parsed == null) return;
+
+    setPriceBusy(true);
+    try {
+      await onUpdatePrice(parsed);
+      setEditingPrice(false);
+    } finally {
+      setPriceBusy(false);
+    }
+  }
 
   return (
     <li
@@ -128,10 +155,49 @@ export function ItemRow({
               <span className="font-medium text-foreground">{item.name}</span>
               {item.quantity > 1 && <Badge variant="muted">×{item.quantity}</Badge>}
               {item.category && <Badge variant="default">{item.category}</Badge>}
+              {item.price != null && !editingPrice && (
+                <Badge variant="muted">{formatAmount(item.price, locale)}</Badge>
+              )}
             </div>
             <p className="mt-1">
               <Badge variant={statusBadgeVariant}>{statusLabel}</Badge>
             </p>
+            {isCreator && onUpdatePrice && !selectMode && (
+              <div className="mt-2">
+                {editingPrice ? (
+                  <form onSubmit={handlePriceSubmit} className="flex flex-wrap items-center gap-2">
+                    <Input
+                      value={priceInput}
+                      onChange={(e) => setPriceInput(e.target.value)}
+                      placeholder={t("pricePlaceholder")}
+                      inputMode="decimal"
+                      disabled={priceBusy}
+                      className="h-8 max-w-[8rem] text-sm"
+                    />
+                    <Button type="submit" size="sm" disabled={priceBusy}>
+                      {priceBusy ? <Spinner label={t("loading")} /> : t("save")}
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setEditingPrice(false)}
+                      disabled={priceBusy}
+                    >
+                      {t("cancel")}
+                    </Button>
+                  </form>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={openPriceEdit}
+                    className="text-xs font-medium text-primary hover:underline"
+                  >
+                    {item.price != null ? t("editPrice") : t("setPrice")}
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -185,58 +251,4 @@ export function ItemRow({
   );
 }
 
-export function useItemAnimations(items: Item[], currentPersonId: string) {
-  const knownIdsRef = useRef<Set<string>>(new Set());
-  const prevAssignmentsRef = useRef<Map<string, string | null>>(new Map());
-  const [newIds, setNewIds] = useState<Set<string>>(new Set());
-  const [justClaimedIds, setJustClaimedIds] = useState<Set<string>>(new Set());
-  const [exitingItems, setExitingItems] = useState<Map<string, Item>>(new Map());
-
-  useEffect(() => {
-    const currentIds = new Set(items.map((i) => i.id));
-    const added = new Set<string>();
-
-    for (const id of currentIds) {
-      if (!knownIdsRef.current.has(id)) added.add(id);
-    }
-
-    const claimed = new Set<string>();
-    for (const item of items) {
-      const prev = prevAssignmentsRef.current.get(item.id);
-      if (
-        prev !== item.assigned_person_id &&
-        item.assigned_person_id === currentPersonId
-      ) {
-        claimed.add(item.id);
-      }
-      prevAssignmentsRef.current.set(item.id, item.assigned_person_id);
-    }
-
-    knownIdsRef.current = currentIds;
-
-    if (added.size > 0) {
-      setNewIds(added);
-      const timer = window.setTimeout(() => setNewIds(new Set()), 400);
-      return () => window.clearTimeout(timer);
-    }
-
-    if (claimed.size > 0) {
-      setJustClaimedIds(claimed);
-      const timer = window.setTimeout(() => setJustClaimedIds(new Set()), 650);
-      return () => window.clearTimeout(timer);
-    }
-  }, [items, currentPersonId]);
-
-  function markExiting(item: Item) {
-    setExitingItems((prev) => new Map(prev).set(item.id, item));
-    window.setTimeout(() => {
-      setExitingItems((prev) => {
-        const next = new Map(prev);
-        next.delete(item.id);
-        return next;
-      });
-    }, 220);
-  }
-
-  return { newIds, justClaimedIds, exitingItems, markExiting };
-}
+export { useItemAnimations } from "./ItemRowAnimations";

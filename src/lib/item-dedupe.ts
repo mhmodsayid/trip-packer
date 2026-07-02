@@ -2,6 +2,7 @@ export type ItemInput = {
   name: string;
   quantity: number;
   category: string | null;
+  price?: number | null;
 };
 
 export function normalizeItemName(name: string): string {
