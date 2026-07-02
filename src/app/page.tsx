@@ -6,9 +6,10 @@ import { ConfigWarning } from "@/components/ConfigWarning";
 import { ShareLink } from "@/components/ShareLink";
 import { useTranslation } from "@/components/LanguageProvider";
 import { Button, Card, Input, Spinner } from "@/components/ui";
-import { formatError } from "@/lib/errors";
 import { buildJoinUrl } from "@/lib/storage";
+import { formatError } from "@/lib/errors";
 import { isSupabaseConfigured } from "@/lib/supabase";
+import { extractTripIdFromJoinInput, isValidUuid } from "@/lib/uuid";
 import { createTrip } from "@/lib/trips";
 import type { Trip } from "@/types";
 
@@ -17,9 +18,10 @@ export default function HomePage() {
   const { t, te } = useTranslation();
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [createdTrip, setCreatedTrip] = useState<Trip | null>(null);
-  const [joinLink, setJoinLink] = useState("");
+  const [joinTripId, setJoinTripId] = useState("");
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [joinError, setJoinError] = useState<string | null>(null);
 
   async function handleCreate(e: FormEvent) {
     e.preventDefault();
@@ -27,31 +29,27 @@ export default function HomePage() {
     if (!trimmed) return;
 
     setLoading(true);
-    setError(null);
+    setCreateError(null);
 
     try {
       const trip = await createTrip(trimmed);
       setCreatedTrip(trip);
-      setJoinLink(buildJoinUrl(trip.id, trip.pin));
     } catch (err) {
-      setError(formatError(err, te, "failedCreateTrip"));
+      setCreateError(formatError(err, te, "failedCreateTrip"));
     } finally {
       setLoading(false);
     }
   }
 
-  function handleJoinExisting(e: FormEvent) {
+  function handleJoinByTripId(e: FormEvent) {
     e.preventDefault();
-    try {
-      const url = new URL(joinLink.trim());
-      router.push(url.pathname + url.search);
-    } catch {
-      if (joinLink.trim().startsWith("/")) {
-        router.push(joinLink.trim());
-      } else {
-        setError(te("invalidJoinLink"));
-      }
+    const tripId = extractTripIdFromJoinInput(joinTripId);
+    if (!tripId || !isValidUuid(tripId)) {
+      setJoinError(te("invalidTripId"));
+      return;
     }
+    setJoinError(null);
+    router.push(`/t/${tripId}/join`);
   }
 
   if (!isSupabaseConfigured()) {
@@ -122,21 +120,39 @@ export default function HomePage() {
 
       <Card>
         <h2 className="font-semibold">{t("joinExisting")}</h2>
-        <form onSubmit={handleJoinExisting} className="mt-4 space-y-3">
-          <Input
-            placeholder={t("joinLinkPlaceholder")}
-            value={joinLink}
-            onChange={(e) => setJoinLink(e.target.value)}
-          />
-          <Button type="submit" variant="secondary" className="w-full" disabled={!joinLink.trim()}>
-            {t("openLink")}
+        <p className="mt-1 text-sm text-muted">{t("joinExistingHint")}</p>
+        <form onSubmit={handleJoinByTripId} className="mt-4 space-y-3">
+          <div>
+            <label htmlFor="join-trip-id" className="text-sm font-medium">
+              {t("tripIdLabel")}
+            </label>
+            <Input
+              id="join-trip-id"
+              placeholder={t("tripIdPlaceholder")}
+              value={joinTripId}
+              onChange={(e) => setJoinTripId(e.target.value)}
+              className="mt-1 font-mono text-sm"
+            />
+          </div>
+          <Button
+            type="submit"
+            variant="secondary"
+            className="w-full"
+            disabled={!joinTripId.trim()}
+          >
+            {t("continueToJoin")}
           </Button>
         </form>
+        {joinError && (
+          <p className="mt-3 animate-toast-in text-sm text-red-600" role="alert">
+            {joinError}
+          </p>
+        )}
       </Card>
 
-      {error && (
+      {createError && (
         <p className="mt-4 animate-toast-in text-center text-sm text-red-600" role="alert">
-          {error}
+          {createError}
         </p>
       )}
     </main>
