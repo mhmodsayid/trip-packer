@@ -5,6 +5,7 @@ import type { Item, ItemFilter, Person } from "@/types";
 import { useTranslation } from "@/components/LanguageProvider";
 import { ItemRow, useItemAnimations } from "@/components/ItemRow";
 import { formatError } from "@/lib/errors";
+import { visiblePeople } from "@/lib/people";
 import { Input, Spinner } from "./ui";
 
 interface ItemListProps {
@@ -32,12 +33,15 @@ export function ItemList({
 }: ItemListProps) {
   const { t, te } = useTranslation();
   const [filter, setFilter] = useState<ItemFilter>("all");
+  const [memberFilterId, setMemberFilterId] = useState("");
   const [search, setSearch] = useState("");
   const [actionId, setActionId] = useState<string | null>(null);
   const [bulkBusy, setBulkBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  const memberFilterActive = memberFilterId !== "";
 
   const { newIds, justClaimedIds, exitingItems, markExiting } = useItemAnimations(
     items,
@@ -50,10 +54,35 @@ export function ItemList({
     return map;
   }, [people]);
 
+  const memberOptions = useMemo(() => {
+    const participants = visiblePeople(people);
+    const counts = new Map<string, number>();
+    for (const item of items) {
+      if (!item.assigned_person_id) continue;
+      counts.set(
+        item.assigned_person_id,
+        (counts.get(item.assigned_person_id) ?? 0) + 1
+      );
+    }
+    return participants
+      .map((person) => ({
+        id: person.id,
+        name: person.name,
+        itemCount: counts.get(person.id) ?? 0,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
+  }, [people, items]);
+
+  const selectedMemberName = memberFilterId
+    ? peopleMap.get(memberFilterId) ?? t("unknown")
+    : null;
+
   const filtered = useMemo(() => {
     let result = items;
 
-    if (filter === "unclaimed") {
+    if (memberFilterActive) {
+      result = result.filter((i) => i.assigned_person_id === memberFilterId);
+    } else if (filter === "unclaimed") {
       result = result.filter((i) => !i.assigned_person_id);
     } else if (filter === "mine") {
       result = result.filter((i) => i.assigned_person_id === currentPersonId);
@@ -69,7 +98,7 @@ export function ItemList({
     }
 
     return result;
-  }, [items, filter, search, currentPersonId]);
+  }, [items, filter, memberFilterActive, memberFilterId, search, currentPersonId]);
 
   const displayItems = useMemo(() => {
     const ids = new Set(filtered.map((i) => i.id));
@@ -135,6 +164,13 @@ export function ItemList({
     setSelectedIds(new Set());
   }
 
+  function handleMemberFilterChange(value: string) {
+    setMemberFilterId(value);
+    if (value) {
+      exitSelectMode();
+    }
+  }
+
   const filterLabels: Record<ItemFilter, string> = {
     all: t("filterAll"),
     unclaimed: t("filterUnclaimed"),
@@ -147,50 +183,88 @@ export function ItemList({
     { key: "mine", count: counts.mine },
   ];
 
-  const canBulkSelect = counts.unclaimed > 0 && Boolean(onClaimMany);
+  const canBulkSelect =
+    !memberFilterActive && counts.unclaimed > 0 && Boolean(onClaimMany);
+
+  function emptyMessage(): string {
+    if (items.length === 0) return t("noItemsYet");
+    if (memberFilterActive && selectedMemberName) {
+      if (search.trim()) return t("noItemsMatch");
+      return t("noItemsAssignedToMember", { name: selectedMemberName });
+    }
+    return t("noItemsMatch");
+  }
 
   return (
     <div className="space-y-4 animate-section-in">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="inline-flex flex-wrap gap-1 rounded-xl border border-border bg-white p-1 shadow-sm">
-            {filters.map((f) => (
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-center gap-2">
+            <div
+              className={`inline-flex flex-wrap gap-1 rounded-xl border border-border bg-white p-1 shadow-sm motion-safe:transition-opacity motion-safe:duration-200 ${
+                memberFilterActive ? "pointer-events-none opacity-50" : ""
+              }`}
+              aria-hidden={memberFilterActive}
+            >
+              {filters.map((f) => (
+                <button
+                  key={f.key}
+                  type="button"
+                  onClick={() => setFilter(f.key)}
+                  disabled={memberFilterActive}
+                  tabIndex={memberFilterActive ? -1 : 0}
+                  className={`rounded-lg px-3 py-2 text-sm font-medium motion-safe:transition-all motion-safe:duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed ${
+                    filter === f.key && !memberFilterActive
+                      ? "bg-primary text-white shadow-sm"
+                      : "text-muted hover:bg-slate-50 hover:text-foreground"
+                  }`}
+                >
+                  {filterLabels[f.key]} ({f.count})
+                </button>
+              ))}
+            </div>
+
+            {canBulkSelect && (
               <button
-                key={f.key}
                 type="button"
-                onClick={() => setFilter(f.key)}
-                className={`rounded-lg px-3 py-2 text-sm font-medium motion-safe:transition-all motion-safe:duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
-                  filter === f.key
-                    ? "bg-primary text-white shadow-sm"
-                    : "text-muted hover:bg-slate-50 hover:text-foreground"
+                onClick={() => (selectMode ? exitSelectMode() : setSelectMode(true))}
+                className={`rounded-lg px-3 py-2 text-sm font-medium motion-safe:transition-colors motion-safe:duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+                  selectMode
+                    ? "bg-slate-900 text-white"
+                    : "border border-border bg-white text-muted hover:bg-slate-50 hover:text-foreground"
                 }`}
               >
-                {filterLabels[f.key]} ({f.count})
+                {selectMode ? t("cancelSelect") : t("selectItems")}
               </button>
-            ))}
+            )}
           </div>
 
-          {canBulkSelect && (
-            <button
-              type="button"
-              onClick={() => (selectMode ? exitSelectMode() : setSelectMode(true))}
-              className={`rounded-lg px-3 py-2 text-sm font-medium motion-safe:transition-colors motion-safe:duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
-                selectMode
-                  ? "bg-slate-900 text-white"
-                  : "border border-border bg-white text-muted hover:bg-slate-50 hover:text-foreground"
-              }`}
-            >
-              {selectMode ? t("cancelSelect") : t("selectItems")}
-            </button>
-          )}
+          <Input
+            placeholder={t("searchPlaceholder")}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="sm:max-w-xs"
+          />
         </div>
 
-        <Input
-          placeholder={t("searchPlaceholder")}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="sm:max-w-xs"
-        />
+        <div className="flex flex-col gap-1.5 sm:max-w-sm">
+          <label htmlFor="member-filter" className="text-sm font-medium text-foreground">
+            {t("filterByMember")}
+          </label>
+          <select
+            id="member-filter"
+            value={memberFilterId}
+            onChange={(e) => handleMemberFilterChange(e.target.value)}
+            className="flex h-10 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm text-foreground motion-safe:transition-colors motion-safe:duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          >
+            <option value="">{t("allMembers")}</option>
+            {memberOptions.map((member) => (
+              <option key={member.id} value={member.id}>
+                {member.name} ({member.itemCount})
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {actionError && (
@@ -224,9 +298,7 @@ export function ItemList({
         </div>
       ) : displayItems.length === 0 ? (
         <div className="animate-section-in rounded-xl border border-dashed border-border bg-white py-12 text-center">
-          <p className="text-muted">
-            {items.length === 0 ? t("noItemsYet") : t("noItemsMatch")}
-          </p>
+          <p className="text-muted">{emptyMessage()}</p>
         </div>
       ) : (
         <ul className="overflow-hidden rounded-xl border border-border bg-white shadow-sm">
