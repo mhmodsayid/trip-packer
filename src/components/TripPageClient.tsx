@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AddItemsPanel } from "@/components/AddItemsPanel";
+import { Modal } from "@/components/Modal";
 import { ConfigWarning } from "@/components/ConfigWarning";
 import { ItemList } from "@/components/ItemList";
 import { ShareLink } from "@/components/ShareLink";
@@ -37,6 +38,8 @@ export function TripPageClient({ tripId }: TripPageClientProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showShare, setShowShare] = useState(false);
+  const [addModalOpen, setAddModalOpen] = useState(false);
+  const addButtonRef = useRef<HTMLButtonElement>(null);
   const [person, setPerson] = useState<{ id: string; name: string } | null>(null);
 
   const loadData = useCallback(async () => {
@@ -161,7 +164,25 @@ export function TripPageClient({ tripId }: TripPageClientProps) {
       )}
 
       <section className="mb-8">
-        <h2 className="mb-4 text-lg font-semibold">{t("packingList")}</h2>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold">{t("packingList")}</h2>
+          <Button
+            ref={addButtonRef}
+            onClick={() => setAddModalOpen(true)}
+            className="gap-1.5"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              className="h-5 w-5 shrink-0"
+              aria-hidden="true"
+            >
+              <path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" />
+            </svg>
+            {t("addItems")}
+          </Button>
+        </div>
         <ItemList
           items={items}
           people={people}
@@ -173,9 +194,18 @@ export function TripPageClient({ tripId }: TripPageClientProps) {
         />
       </section>
 
-      <AddItemsPanel
-        onAddItems={(newItems) => insertItems(tripId, person.id, newItems)}
-      />
+      <Modal
+        open={addModalOpen}
+        onClose={() => setAddModalOpen(false)}
+        title={t("addItems")}
+        returnFocusRef={addButtonRef}
+      >
+        <AddItemsPanel
+          inModal
+          onAddItems={(newItems) => insertItems(tripId, person.id, newItems)}
+          onSuccess={() => setAddModalOpen(false)}
+        />
+      </Modal>
     </main>
   );
 }

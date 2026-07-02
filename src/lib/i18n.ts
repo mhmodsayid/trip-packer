@@ -40,7 +40,7 @@ const translations = {
     filterUnclaimed: "Unclaimed",
     filterMine: "Mine",
     searchPlaceholder: "Search items...",
-    noItemsYet: "No items yet. Add some below!",
+    noItemsYet: "No items yet. Use Add items to start.",
     noItemsMatch: "No items match your filter.",
     unclaimed: "Unclaimed",
     you: "You",
@@ -51,6 +51,7 @@ const translations = {
     deleteConfirm: 'Remove "{{name}}" from the list?',
 
     addItems: "Add items",
+    close: "Close",
     addItemsHint: "Paste a list, upload a spreadsheet, or quick-add one item.",
     quickAddPlaceholder: "Quick add an item...",
     add: "Add",
@@ -181,7 +182,7 @@ const translations = {
     filterUnclaimed: "غير محجوز",
     filterMine: "محجوز لي",
     searchPlaceholder: "ابحث في العناصر...",
-    noItemsYet: "لا توجد عناصر بعد. أضف بعضها أدناه!",
+    noItemsYet: "لا توجد عناصر بعد. استخدم «إضافة عناصر» للبدء.",
     noItemsMatch: "لا توجد عناصر تطابق التصفية.",
     unclaimed: "غير محجوز",
     you: "أنت",
@@ -192,6 +193,7 @@ const translations = {
     deleteConfirm: 'إزالة "{{name}}" من القائمة؟',
 
     addItems: "إضافة عناصر",
+    close: "إغلاق",
     addItemsHint: "الصق قائمة، ارفع جدول بيانات، أو أضف عنصراً واحداً بسرعة.",
     quickAddPlaceholder: "إضافة سريعة لعنصر...",
     add: "إضافة",

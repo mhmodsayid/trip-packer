@@ -11,9 +11,15 @@ interface AddItemsPanelProps {
   onAddItems: (
     items: { name: string; quantity: number; category: string | null }[]
   ) => Promise<number>;
+  onSuccess?: () => void;
+  inModal?: boolean;
 }
 
-export function AddItemsPanel({ onAddItems }: AddItemsPanelProps) {
+export function AddItemsPanel({
+  onAddItems,
+  onSuccess,
+  inModal = false,
+}: AddItemsPanelProps) {
   const { t, te } = useTranslation();
   const [pasteText, setPasteText] = useState("");
   const [quickName, setQuickName] = useState("");
@@ -45,6 +51,7 @@ export function AddItemsPanel({ onAddItems }: AddItemsPanelProps) {
       const count = await onAddItems(parsed);
       showSuccess(count === 1 ? t("addedItem") : t("addedItems", { count }));
       setPasteText("");
+      onSuccess?.();
     } catch (err) {
       showError(formatError(err, te, "failedAddItems"));
     } finally {
@@ -63,6 +70,7 @@ export function AddItemsPanel({ onAddItems }: AddItemsPanelProps) {
       await onAddItems([{ name, quantity: 1, category: null }]);
       setQuickName("");
       showSuccess(t("itemAdded"));
+      onSuccess?.();
     } catch (err) {
       showError(formatError(err, te, "failedAddItem"));
     } finally {
@@ -114,6 +122,7 @@ export function AddItemsPanel({ onAddItems }: AddItemsPanelProps) {
           ? t("importedItem", { file: file.name })
           : t("importedItems", { count, file: file.name })
       );
+      onSuccess?.();
     } catch (err) {
       showError(formatError(err, te, "failedImport"));
     } finally {
@@ -122,12 +131,15 @@ export function AddItemsPanel({ onAddItems }: AddItemsPanelProps) {
     }
   }
 
-  return (
-    <Card className="space-y-6">
-      <div>
-        <h3 className="font-semibold">{t("addItems")}</h3>
-        <p className="mt-1 text-sm text-muted">{t("addItemsHint")}</p>
-      </div>
+  const content = (
+    <>
+      {!inModal && (
+        <div>
+          <h3 className="font-semibold">{t("addItems")}</h3>
+          <p className="mt-1 text-sm text-muted">{t("addItemsHint")}</p>
+        </div>
+      )}
+      {inModal && <p className="text-sm text-muted">{t("addItemsHint")}</p>}
 
       <form onSubmit={handleQuickAdd} className="flex gap-2">
         <Input
@@ -204,6 +216,12 @@ export function AddItemsPanel({ onAddItems }: AddItemsPanelProps) {
           {message}
         </p>
       )}
-    </Card>
+    </>
   );
+
+  if (inModal) {
+    return <div className="space-y-6">{content}</div>;
+  }
+
+  return <Card className="space-y-6">{content}</Card>;
 }
