@@ -411,6 +411,26 @@ export async function updateItemPrice(
   if (!data?.length) throw new AppError("couldNotUpdateItem");
 }
 
+export async function updateItemName(
+  itemId: string,
+  name: string,
+  personId: string
+): Promise<void> {
+  const trimmed = name.trim();
+  if (!trimmed) throw new AppError("itemNameRequired");
+
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from(TABLES.items)
+    .update({ name: trimmed })
+    .eq("id", itemId)
+    .eq("added_by_person_id", personId)
+    .select("id");
+
+  if (error) throw error;
+  if (!data?.length) throw new AppError("couldNotEditItem");
+}
+
 export async function getPayments(tripId: string): Promise<Payment[]> {
   const supabase = getSupabase();
   const { data, error } = await supabase

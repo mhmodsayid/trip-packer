@@ -16,6 +16,7 @@ interface ItemListProps {
   onUnclaim: (itemId: string) => Promise<void>;
   onDelete: (itemId: string) => Promise<void>;
   onUpdatePrice?: (itemId: string, price: number | null) => Promise<void>;
+  onUpdateName?: (itemId: string, name: string) => Promise<void>;
   onClaimMany?: (itemIds: string[]) => Promise<number>;
   loading?: boolean;
 }
@@ -28,6 +29,7 @@ export function ItemList({
   onUnclaim,
   onDelete,
   onUpdatePrice,
+  onUpdateName,
   onClaimMany,
   loading,
 }: ItemListProps) {
@@ -342,6 +344,11 @@ export function ItemList({
                 onUpdatePrice={
                   canEditPrice && onUpdatePrice
                     ? (price) => handleAction(() => onUpdatePrice(item.id, price), item.id)
+                    : undefined
+                }
+                onUpdateName={
+                  isCreator && onUpdateName
+                    ? (name) => handleAction(() => onUpdateName(item.id, name), item.id)
                     : undefined
                 }
               />

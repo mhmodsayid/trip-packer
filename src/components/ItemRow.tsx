@@ -26,6 +26,7 @@ interface ItemRowProps {
   onUnclaim: () => void;
   onDelete: () => void;
   onUpdatePrice?: (price: number | null) => Promise<void>;
+  onUpdateName?: (name: string) => Promise<void>;
 }
 
 const statusStyles: Record<ItemStatus, string> = {
@@ -77,11 +78,15 @@ export function ItemRow({
   onUnclaim,
   onDelete,
   onUpdatePrice,
+  onUpdateName,
 }: ItemRowProps) {
   const { t, locale } = useTranslation();
   const [editingPrice, setEditingPrice] = useState(false);
   const [priceInput, setPriceInput] = useState("");
   const [priceBusy, setPriceBusy] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState("");
+  const [nameBusy, setNameBusy] = useState(false);
 
   const statusLabel =
     status === "unclaimed"
@@ -94,10 +99,34 @@ export function ItemRow({
     status === "unclaimed" ? "warning" : status === "mine" ? "success" : "muted";
 
   const showPriceEditor = canEditPrice && onUpdatePrice && !selectMode;
+  const showNameEditor = Boolean(onUpdateName) && !selectMode;
 
   function openPriceEdit() {
     setPriceInput(item.price != null ? String(item.price) : "");
     setEditingPrice(true);
+  }
+
+  function openNameEdit() {
+    setNameInput(item.name);
+    setEditingName(true);
+  }
+
+  async function handleNameSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (!onUpdateName) return;
+    const trimmed = nameInput.trim();
+    if (!trimmed || trimmed === item.name) {
+      setEditingName(false);
+      return;
+    }
+
+    setNameBusy(true);
+    try {
+      await onUpdateName(trimmed);
+      setEditingName(false);
+    } finally {
+      setNameBusy(false);
+    }
   }
 
   async function handlePriceSubmit(e: FormEvent) {
@@ -155,8 +184,44 @@ export function ItemRow({
           </div>
 
           <div className="min-w-0 flex-1">
+            {editingName ? (
+              <form onSubmit={handleNameSubmit} className="flex flex-wrap items-center gap-2">
+                <Input
+                  value={nameInput}
+                  onChange={(e) => setNameInput(e.target.value)}
+                  placeholder={t("itemNamePlaceholder")}
+                  disabled={nameBusy}
+                  autoFocus
+                  className="h-8 max-w-52 text-sm"
+                  aria-label={t("nameLabel")}
+                />
+                <Button type="submit" size="sm" disabled={nameBusy}>
+                  {nameBusy ? <Spinner label={t("loading")} /> : t("save")}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setEditingName(false)}
+                  disabled={nameBusy}
+                >
+                  {t("cancel")}
+                </Button>
+              </form>
+            ) : (
             <div className="flex flex-wrap items-center gap-2">
-              <span className="font-medium text-foreground">{item.name}</span>
+              {showNameEditor ? (
+                <button
+                  type="button"
+                  onClick={openNameEdit}
+                  className="rounded-md font-medium text-foreground hover:text-primary hover:underline motion-safe:transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                  aria-label={t("editName")}
+                >
+                  {item.name}
+                </button>
+              ) : (
+                <span className="font-medium text-foreground">{item.name}</span>
+              )}
               {item.quantity > 1 && <Badge variant="muted">×{item.quantity}</Badge>}
               {item.category && <Badge variant="default">{item.category}</Badge>}
               {item.price != null && !editingPrice && showPriceEditor && (
@@ -173,6 +238,7 @@ export function ItemRow({
                 <Badge variant="muted">{formatAmount(item.price, locale)}</Badge>
               )}
             </div>
+            )}
             <p className="mt-1">
               <Badge variant={statusBadgeVariant}>{statusLabel}</Badge>
             </p>

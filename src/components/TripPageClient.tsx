@@ -35,6 +35,7 @@ import {
   subscribeToPeople,
   touchPresence,
   unclaimItem,
+  updateItemName,
   updateItemPrice,
   updatePayment,
 } from "@/lib/trips";
@@ -319,6 +320,7 @@ export function TripPageClient({ tripId }: TripPageClientProps) {
           onUnclaim={(id) => unclaimItem(id, person.id)}
           onDelete={(id) => deleteItem(id, person.id)}
           onUpdatePrice={(id, price) => updateItemPrice(id, price, person.id)}
+          onUpdateName={(id, name) => updateItemName(id, name, person.id)}
           onClaimMany={(ids) => claimItems(ids, person.id)}
           loading={loading}
         />
