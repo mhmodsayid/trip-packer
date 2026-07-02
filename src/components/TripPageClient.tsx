@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ChangeNameForm } from "@/components/ChangeNameForm";
 import { AddItemsPanel } from "@/components/AddItemsPanel";
 import { Modal } from "@/components/Modal";
 import { ConfigWarning } from "@/components/ConfigWarning";
@@ -10,7 +11,7 @@ import { ShareLink } from "@/components/ShareLink";
 import { useTranslation } from "@/components/LanguageProvider";
 import { Button, Card, Spinner } from "@/components/ui";
 import { formatError } from "@/lib/errors";
-import { buildJoinUrl, getStoredPerson } from "@/lib/storage";
+import { buildJoinUrl, getStoredPerson, setStoredPerson } from "@/lib/storage";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import {
   claimItem,
@@ -20,6 +21,7 @@ import {
   getPeople,
   getTrip,
   insertItems,
+  renamePerson,
   subscribeToItems,
   subscribeToPeople,
   unclaimItem,
@@ -40,7 +42,9 @@ export function TripPageClient({ tripId }: TripPageClientProps) {
   const [error, setError] = useState<string | null>(null);
   const [showShare, setShowShare] = useState(false);
   const [addModalOpen, setAddModalOpen] = useState(false);
+  const [changeNameOpen, setChangeNameOpen] = useState(false);
   const addButtonRef = useRef<HTMLButtonElement>(null);
+  const changeNameRef = useRef<HTMLButtonElement>(null);
   const [person, setPerson] = useState<{ id: string; name: string } | null>(null);
 
   const loadData = useCallback(async () => {
@@ -137,15 +141,46 @@ export function TripPageClient({ tripId }: TripPageClientProps) {
 
   const joinUrl = buildJoinUrl(trip.id, trip.pin);
 
+  async function handleRename(newName: string) {
+    if (!person) return;
+    const updated = await renamePerson(person.id, newName);
+    const stored = { id: person.id, name: updated.name };
+    setStoredPerson(tripId, stored);
+    setPerson(stored);
+    setPeople((prev) =>
+      prev.map((p) => (p.id === person.id ? { ...p, name: updated.name } : p))
+    );
+    setChangeNameOpen(false);
+  }
+
   return (
     <main className="mx-auto max-w-3xl px-4 py-6 sm:py-8 animate-section-in">
       <header className="mb-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
             <h1 className="text-2xl font-bold tracking-tight">{trip.name}</h1>
-            <p className="mt-1 text-sm text-muted">
-              {t("signedInAs")}{" "}
-              <span className="font-medium text-foreground">{person.name}</span>
+            <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted">
+              <span>
+                {t("signedInAs")}{" "}
+                <span className="font-medium text-foreground">{person.name}</span>
+              </span>
+              <button
+                ref={changeNameRef}
+                type="button"
+                onClick={() => setChangeNameOpen(true)}
+                className="inline-flex min-h-8 items-center gap-1 rounded-md text-xs font-medium text-primary motion-safe:transition-colors motion-safe:duration-200 hover:text-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  className="h-3.5 w-3.5"
+                  aria-hidden="true"
+                >
+                  <path d="m2.695 14.762-1.262 3.154a.5.5 0 0 0 .65.65l3.155-1.262a4 4 0 0 0 1.343-.885L17.5 5.5a2.121 2.121 0 0 0-3-3L3.58 13.42a4 4 0 0 0-.885 1.343Z" />
+                </svg>
+                {t("changeName")}
+              </button>
             </p>
           </div>
           <Button
@@ -195,6 +230,19 @@ export function TripPageClient({ tripId }: TripPageClientProps) {
           loading={loading}
         />
       </section>
+
+      <Modal
+        open={changeNameOpen}
+        onClose={() => setChangeNameOpen(false)}
+        title={t("changeNameTitle")}
+        returnFocusRef={changeNameRef}
+      >
+        <ChangeNameForm
+          currentName={person.name}
+          onSave={handleRename}
+          onCancel={() => setChangeNameOpen(false)}
+        />
+      </Modal>
 
       <Modal
         open={addModalOpen}

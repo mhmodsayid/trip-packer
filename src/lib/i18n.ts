@@ -32,6 +32,10 @@ const translations = {
     goHome: "Go home",
 
     signedInAs: "Signed in as",
+    changeName: "Change name",
+    changeNameTitle: "Change your name",
+    save: "Save",
+    cancel: "Cancel",
     shareJoinLink: "Share join link",
     hideShareLink: "Hide share link",
     packingList: "Packing list",
@@ -148,6 +152,8 @@ const translations = {
       failedAddItem: "Failed to add item.",
       noValidRows: "No valid rows found. Expected columns: name, quantity, category.",
       failedImport: "Failed to import file.",
+      failedRename: "Failed to change name.",
+      emptyName: "Name cannot be empty.",
       missingSupabase:
         "Missing Supabase configuration. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY in .env.local",
     },
@@ -180,6 +186,10 @@ const translations = {
     goHome: "الصفحة الرئيسية",
 
     signedInAs: "مسجّل باسم",
+    changeName: "تغيير الاسم",
+    changeNameTitle: "تغيير اسمك",
+    save: "حفظ",
+    cancel: "إلغاء",
     shareJoinLink: "مشاركة رابط الانضمام",
     hideShareLink: "إخفاء رابط المشاركة",
     packingList: "قائمة التعبئة",
@@ -296,6 +306,8 @@ const translations = {
       failedAddItem: "فشلت إضافة العنصر.",
       noValidRows: "لم يُعثر على صفوف صالحة. الأعمدة المتوقعة: name، quantity، category.",
       failedImport: "فشل استيراد الملف.",
+      failedRename: "فشل تغيير الاسم.",
+      emptyName: "لا يمكن أن يكون الاسم فارغاً.",
       missingSupabase:
         "إعداد Supabase ناقص. اضبط NEXT_PUBLIC_SUPABASE_URL و NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY في .env.local",
     },

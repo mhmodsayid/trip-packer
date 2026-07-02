@@ -56,6 +56,25 @@ export async function findOrCreatePerson(
   return data as Person;
 }
 
+export async function renamePerson(
+  personId: string,
+  name: string
+): Promise<Person> {
+  const trimmed = name.trim();
+  if (!trimmed) throw new AppError("emptyName");
+
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from(TABLES.people)
+    .update({ name: trimmed })
+    .eq("id", personId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as Person;
+}
+
 export async function getPeople(tripId: string): Promise<Person[]> {
   const supabase = getSupabase();
   const { data, error } = await supabase
