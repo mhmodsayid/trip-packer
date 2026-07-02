@@ -16,6 +16,7 @@ import { Button, Card, Spinner } from "@/components/ui";
 import { formatError, errorCode } from "@/lib/errors";
 import { isAdminPersonId } from "@/lib/people";
 import { buildJoinUrl, clearStoredPerson, getStoredPerson, setStoredPerson } from "@/lib/storage";
+import { recordTripVisit } from "@/lib/trip-history";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import {
   addPayment,
@@ -99,6 +100,19 @@ export function TripPageClient({ tripId }: TripPageClientProps) {
     }
     setPerson(stored);
   }, [tripId, router]);
+
+  const loadedTripName = trip?.name;
+  const loadedTripPin = trip?.pin;
+  const personName = person?.name;
+  useEffect(() => {
+    if (!loadedTripName || !loadedTripPin || !personName) return;
+    recordTripVisit({
+      id: tripId,
+      name: loadedTripName,
+      pin: loadedTripPin,
+      personName,
+    });
+  }, [tripId, loadedTripName, loadedTripPin, personName]);
 
   useEffect(() => {
     if (!person?.sessionId) return;
@@ -269,13 +283,30 @@ export function TripPageClient({ tripId }: TripPageClientProps) {
               </button>
             </p>
           </div>
-          <Button
-            variant="secondary"
-            onClick={() => setShowShare((s) => !s)}
-            className="shrink-0"
-          >
-            {showShare ? t("hideShareLink") : t("shareJoinLink")}
-          </Button>
+          <div className="flex shrink-0 flex-wrap gap-2">
+            <Button
+              variant="secondary"
+              onClick={() => router.push("/")}
+              className="gap-1.5"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                className="h-4 w-4 shrink-0"
+                aria-hidden="true"
+              >
+                <path d="M9.293 2.293a1 1 0 0 1 1.414 0l7 7A1 1 0 0 1 17 11h-1v6a1 1 0 0 1-1 1h-3v-4a1 1 0 0 0-1-1H9a1 1 0 0 0-1 1v4H5a1 1 0 0 1-1-1v-6H3a1 1 0 0 1-.707-1.707l7-7Z" />
+              </svg>
+              {t("switchTrip")}
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={() => setShowShare((s) => !s)}
+            >
+              {showShare ? t("hideShareLink") : t("shareJoinLink")}
+            </Button>
+          </div>
         </div>
       </header>
 

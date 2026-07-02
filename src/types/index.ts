@@ -53,4 +53,12 @@ export interface StoredPerson {
   sessionId: string;
 }
 
+export interface TripHistoryEntry {
+  id: string;
+  name: string;
+  pin: string;
+  personName: string;
+  lastVisited: number;
+}
+
 export type ItemFilter = "all" | "unclaimed" | "mine";

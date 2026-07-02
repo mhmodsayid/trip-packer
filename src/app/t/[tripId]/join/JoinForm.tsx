@@ -10,6 +10,7 @@ import { recordFailure, resetAttempts } from "@/lib/attempts";
 import { errorCode, formatError } from "@/lib/errors";
 import { pinsMatch } from "@/lib/pin";
 import { clearStoredPerson, getStoredPerson, setStoredPerson } from "@/lib/storage";
+import { recordTripVisit } from "@/lib/trip-history";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { getTrip, joinTrip, resumeTripSession } from "@/lib/trips";
 
@@ -26,6 +27,7 @@ export function JoinForm({ params }: JoinFormProps) {
   const { locked: joinLocked, message: joinLockMessage } = useJoinLockout();
   const [tripId, setTripId] = useState<string | null>(null);
   const [tripName, setTripName] = useState<string | null>(null);
+  const [tripPin, setTripPin] = useState<string | null>(null);
   const [stage, setStage] = useState<JoinStage>("loading");
   const [name, setName] = useState("");
   const [pinInput, setPinInput] = useState("");
@@ -43,15 +45,23 @@ export function JoinForm({ params }: JoinFormProps) {
   }, [params]);
 
   const enterTrip = useCallback(
-    (id: string, personId: string, personName: string, sessionId: string) => {
+    (
+      id: string,
+      personId: string,
+      personName: string,
+      sessionId: string,
+      name: string,
+      pin: string
+    ) => {
       setStoredPerson(id, { id: personId, name: personName, sessionId });
+      recordTripVisit({ id, name, pin, personName });
       router.replace(`/t/${id}`);
     },
     [router]
   );
 
   const proceedAfterPinSuccess = useCallback(
-    async (id: string) => {
+    async (id: string, name: string, pin: string) => {
       const stored = getStoredPerson(id);
       if (stored) {
         try {
@@ -60,7 +70,7 @@ export function JoinForm({ params }: JoinFormProps) {
             stored.id,
             stored.sessionId
           );
-          enterTrip(id, person.id, person.name, sessionId);
+          enterTrip(id, person.id, person.name, sessionId, name, pin);
           return;
         } catch (err) {
           if (errorCode(err) === "sessionExpired") {
@@ -94,6 +104,7 @@ export function JoinForm({ params }: JoinFormProps) {
         }
 
         setTripName(loaded.name);
+        setTripPin(loaded.pin);
 
         if (urlPin) {
           if (!pinsMatch(loaded.pin, urlPin)) {
@@ -102,7 +113,7 @@ export function JoinForm({ params }: JoinFormProps) {
             return;
           }
           resetAttempts();
-          await proceedAfterPinSuccess(tripId);
+          await proceedAfterPinSuccess(tripId, loaded.name, loaded.pin);
           return;
         }
 
@@ -139,10 +150,11 @@ export function JoinForm({ params }: JoinFormProps) {
     }
 
     setTripName(loaded.name);
+    setTripPin(loaded.pin);
     resetAttempts();
     setPinSubmitting(false);
     setStage("loading");
-    await proceedAfterPinSuccess(tripId);
+    await proceedAfterPinSuccess(tripId, loaded.name, loaded.pin);
   }
 
   async function handleJoin(e: FormEvent) {
@@ -158,7 +170,7 @@ export function JoinForm({ params }: JoinFormProps) {
 
     try {
       const { person, sessionId } = await joinTrip(tripId, trimmed);
-      enterTrip(tripId, person.id, person.name, sessionId);
+      enterTrip(tripId, person.id, person.name, sessionId, tripName ?? "", tripPin ?? "");
     } catch (err) {
       if (errorCode(err) === "nameInUse") {
         setShowTakeOver(true);
@@ -179,7 +191,7 @@ export function JoinForm({ params }: JoinFormProps) {
 
     try {
       const { person, sessionId } = await joinTrip(tripId, trimmed, { takeOver: true });
-      enterTrip(tripId, person.id, person.name, sessionId);
+      enterTrip(tripId, person.id, person.name, sessionId, tripName ?? "", tripPin ?? "");
     } catch (err) {
       setStepError(formatError(err, te, "failedJoinTrip"));
       setTakeOverSubmitting(false);

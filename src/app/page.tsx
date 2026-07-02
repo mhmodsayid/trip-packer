@@ -4,6 +4,7 @@ import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ConfigWarning } from "@/components/ConfigWarning";
 import { JoinLockoutNotice, useJoinLockout } from "@/components/JoinLockoutNotice";
+import { RecentTrips } from "@/components/RecentTrips";
 import { ShareLink } from "@/components/ShareLink";
 import { useTranslation } from "@/components/LanguageProvider";
 import { Button, Card, Input, Spinner } from "@/components/ui";
@@ -107,6 +108,8 @@ export default function HomePage() {
         <h1 className="text-3xl font-bold tracking-tight">{t("appTitle")}</h1>
         <p className="mt-2 text-muted">{t("appTagline")}</p>
       </div>
+
+      <RecentTrips />
 
       <Card className="mb-6">
         <h2 className="font-semibold">{t("createTrip")}</h2>

@@ -19,6 +19,9 @@ const translations = {
     installIosHint: 'Tap Share, then "Add to Home Screen" to install the app.',
     dismissInstall: "Not now",
 
+    recentTrips: "Recent trips",
+    recentTripsAs: "as {{name}}",
+    removeFromHistory: "Remove {{name}} from recent trips",
     createTrip: "Create a new trip",
     tripNamePlaceholder: "Trip name (e.g. Yosemite Camping)",
     createTripButton: "Create trip",
@@ -49,6 +52,7 @@ const translations = {
     signedInAs: "Signed in as",
     changeName: "Change name",
     changeNameTitle: "Change your name",
+    switchTrip: "Switch trip",
     logoutDevice: "Log out from this device",
     logoutConfirm: "Log out from this device? Your name will be free for you to use elsewhere.",
     save: "Save",
@@ -267,6 +271,9 @@ const translations = {
     installIosHint: 'اضغط «مشاركة» ثم «إضافة إلى الشاشة الرئيسية» لتثبيت التطبيق.',
     dismissInstall: "ليس الآن",
 
+    recentTrips: "الرحلات الأخيرة",
+    recentTripsAs: "باسم {{name}}",
+    removeFromHistory: "إزالة {{name}} من الرحلات الأخيرة",
     createTrip: "إنشاء رحلة جديدة",
     tripNamePlaceholder: "اسم الرحلة (مثال: camping Yosemite)",
     createTripButton: "إنشاء الرحلة",
@@ -297,6 +304,7 @@ const translations = {
     signedInAs: "مسجّل باسم",
     changeName: "تغيير الاسم",
     changeNameTitle: "تغيير اسمك",
+    switchTrip: "تبديل الرحلة",
     logoutDevice: "تسجيل الخروج من هذا الجهاز",
     logoutConfirm:
       "تسجيل الخروج من هذا الجهاز؟ سيصبح اسمك متاحاً للانضمام من جهاز آخر.",
