@@ -190,25 +190,33 @@ export function AddItemsPanel({
       {inModal && <p className="text-sm text-muted">{t("addItemsHint")}</p>}
 
       <form onSubmit={handleQuickAdd} className="space-y-2">
-        <div className="flex gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <Input
             placeholder={t("quickAddPlaceholder")}
             value={quickName}
             onChange={(e) => setQuickName(e.target.value)}
             disabled={loading}
-            className="min-w-0 flex-1"
+            aria-label={t("quickAddPlaceholder")}
+            className="min-w-0 w-full sm:min-w-[12rem] sm:flex-1"
           />
-          <Input
-            placeholder={t("pricePlaceholder")}
-            value={quickPrice}
-            onChange={(e) => setQuickPrice(e.target.value)}
-            disabled={loading}
-            inputMode="decimal"
-            className="w-24 shrink-0 sm:w-28"
-          />
-          <Button type="submit" disabled={loading || !quickName.trim()} className="shrink-0">
-            {t("add")}
-          </Button>
+          <div className="flex min-w-0 items-stretch gap-2 sm:shrink-0">
+            <Input
+              placeholder={t("pricePlaceholder")}
+              value={quickPrice}
+              onChange={(e) => setQuickPrice(e.target.value)}
+              disabled={loading}
+              inputMode="decimal"
+              aria-label={t("priceLabel")}
+              className="w-24 max-w-[7rem] shrink-0 grow-0 basis-24 sm:w-28 sm:max-w-none sm:basis-28"
+            />
+            <Button
+              type="submit"
+              disabled={loading || !quickName.trim()}
+              className="min-h-11 min-w-[4.5rem] flex-1 shrink-0 px-4 sm:flex-none"
+            >
+              {t("add")}
+            </Button>
+          </div>
         </div>
       </form>
 
