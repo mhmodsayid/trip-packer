@@ -38,7 +38,6 @@ export function ItemList({
   const [actionError, setActionError] = useState<string | null>(null);
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [lastClaimWasBulk, setLastClaimWasBulk] = useState(false);
 
   const { newIds, justClaimedIds, exitingItems, markExiting } = useItemAnimations(
     items,
@@ -111,7 +110,6 @@ export function ItemList({
     if (!onClaimMany || selectedIds.size === 0) return;
     setBulkBusy(true);
     setActionError(null);
-    setLastClaimWasBulk(true);
     try {
       await onClaimMany([...selectedIds]);
       setSelectedIds(new Set());
@@ -258,7 +256,6 @@ export function ItemList({
                 status={status}
                 isCreator={isCreator}
                 canEditPrice={canEditPrice}
-                promptPriceOnClaim={justClaimed && !lastClaimWasBulk}
                 busy={busy}
                 selectMode={selectMode}
                 selected={selectedIds.has(item.id)}
@@ -267,10 +264,7 @@ export function ItemList({
                 justClaimed={justClaimed}
                 staggerIndex={index}
                 onToggleSelect={() => toggleSelect(item.id)}
-                onClaim={() => {
-                  setLastClaimWasBulk(false);
-                  return handleAction(() => onClaim(item.id), item.id);
-                }}
+                onClaim={() => handleAction(() => onClaim(item.id), item.id)}
                 onUnclaim={() => handleAction(() => onUnclaim(item.id), item.id)}
                 onDelete={() => handleDelete(item)}
                 onUpdatePrice={

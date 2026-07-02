@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useRef, useState, type CSSProperties } from "react";
+import { FormEvent, useState, type CSSProperties } from "react";
 import type { Item } from "@/types";
 import { useTranslation } from "@/components/LanguageProvider";
 import { formatAmount, parseAmountInput } from "@/lib/format-amount";
@@ -14,7 +14,6 @@ interface ItemRowProps {
   status: ItemStatus;
   isCreator: boolean;
   canEditPrice: boolean;
-  promptPriceOnClaim?: boolean;
   busy: boolean;
   selectMode: boolean;
   selected: boolean;
@@ -66,7 +65,6 @@ export function ItemRow({
   status,
   isCreator,
   canEditPrice,
-  promptPriceOnClaim = false,
   busy,
   selectMode,
   selected,
@@ -84,9 +82,6 @@ export function ItemRow({
   const [editingPrice, setEditingPrice] = useState(false);
   const [priceInput, setPriceInput] = useState("");
   const [priceBusy, setPriceBusy] = useState(false);
-  const [claimPricePrompt, setClaimPricePrompt] = useState(false);
-  const priceInputRef = useRef<HTMLInputElement>(null);
-  const claimPromptHandledRef = useRef(false);
 
   const statusLabel =
     status === "unclaimed"
@@ -100,31 +95,10 @@ export function ItemRow({
 
   const showPriceEditor = canEditPrice && onUpdatePrice && !selectMode;
 
-  function openPriceEdit(fromClaim = false) {
+  function openPriceEdit() {
     setPriceInput(item.price != null ? String(item.price) : "");
     setEditingPrice(true);
-    setClaimPricePrompt(fromClaim);
   }
-
-  function closePriceEdit() {
-    setEditingPrice(false);
-    setClaimPricePrompt(false);
-  }
-
-  useEffect(() => {
-    if (!promptPriceOnClaim) {
-      claimPromptHandledRef.current = false;
-      return;
-    }
-    if (!showPriceEditor || claimPromptHandledRef.current) return;
-
-    claimPromptHandledRef.current = true;
-    setPriceInput(item.price != null ? String(item.price) : "");
-    setEditingPrice(true);
-    setClaimPricePrompt(true);
-    const timer = window.setTimeout(() => priceInputRef.current?.focus(), 60);
-    return () => window.clearTimeout(timer);
-  }, [promptPriceOnClaim, showPriceEditor, item.price]);
 
   async function handlePriceSubmit(e: FormEvent) {
     e.preventDefault();
@@ -136,7 +110,7 @@ export function ItemRow({
     setPriceBusy(true);
     try {
       await onUpdatePrice(parsed);
-      closePriceEdit();
+      setEditingPrice(false);
     } finally {
       setPriceBusy(false);
     }
@@ -152,7 +126,6 @@ export function ItemRow({
         isExiting ? "animate-item-exit pointer-events-none" : "",
         justClaimed ? "animate-claim-flash" : "",
         selectMode && selected ? "ring-2 ring-primary/40 ring-inset" : "",
-        claimPricePrompt && editingPrice ? "ring-2 ring-primary/25 ring-inset" : "",
       ]
         .filter(Boolean)
         .join(" ")}
@@ -189,7 +162,7 @@ export function ItemRow({
               {item.price != null && !editingPrice && showPriceEditor && (
                 <button
                   type="button"
-                  onClick={() => openPriceEdit()}
+                  onClick={openPriceEdit}
                   className="motion-safe:transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-md"
                   aria-label={t("editPrice")}
                 >
@@ -206,44 +179,33 @@ export function ItemRow({
             {showPriceEditor && (
               <div className="mt-2">
                 {editingPrice ? (
-                  <form
-                    onSubmit={handlePriceSubmit}
-                    className="animate-section-in space-y-2 rounded-lg border border-primary/15 bg-white/80 p-2.5 shadow-sm"
-                  >
-                    {claimPricePrompt && (
-                      <p className="text-xs font-medium text-foreground">
-                        {t("howMuchDidItCost")}
-                      </p>
-                    )}
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Input
-                        ref={priceInputRef}
-                        value={priceInput}
-                        onChange={(e) => setPriceInput(e.target.value)}
-                        placeholder={t("pricePlaceholder")}
-                        inputMode="decimal"
-                        disabled={priceBusy}
-                        className="h-8 max-w-32 text-sm"
-                        aria-label={t("priceLabel")}
-                      />
-                      <Button type="submit" size="sm" disabled={priceBusy}>
-                        {priceBusy ? <Spinner label={t("loading")} /> : t("save")}
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="ghost"
-                        onClick={closePriceEdit}
-                        disabled={priceBusy}
-                      >
-                        {claimPricePrompt ? t("skipPrice") : t("cancel")}
-                      </Button>
-                    </div>
+                  <form onSubmit={handlePriceSubmit} className="flex flex-wrap items-center gap-2">
+                    <Input
+                      value={priceInput}
+                      onChange={(e) => setPriceInput(e.target.value)}
+                      placeholder={t("pricePlaceholder")}
+                      inputMode="decimal"
+                      disabled={priceBusy}
+                      className="h-8 max-w-32 text-sm"
+                      aria-label={t("priceLabel")}
+                    />
+                    <Button type="submit" size="sm" disabled={priceBusy}>
+                      {priceBusy ? <Spinner label={t("loading")} /> : t("save")}
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setEditingPrice(false)}
+                      disabled={priceBusy}
+                    >
+                      {t("cancel")}
+                    </Button>
                   </form>
                 ) : item.price == null ? (
                   <button
                     type="button"
-                    onClick={() => openPriceEdit()}
+                    onClick={openPriceEdit}
                     className="text-xs font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded"
                   >
                     {t("addPrice")}
@@ -251,7 +213,7 @@ export function ItemRow({
                 ) : (
                   <button
                     type="button"
-                    onClick={() => openPriceEdit()}
+                    onClick={openPriceEdit}
                     className="text-xs font-medium text-muted hover:text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded"
                   >
                     {t("editPrice")}
