@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState, type CSSProperties } from "react";
+import { FormEvent, useEffect, useRef, useState, type CSSProperties } from "react";
 import type { Item } from "@/types";
 import { useTranslation } from "@/components/LanguageProvider";
 import { formatAmount, parseAmountInput } from "@/lib/format-amount";
@@ -13,6 +13,8 @@ interface ItemRowProps {
   assigneeName: string | null;
   status: ItemStatus;
   isCreator: boolean;
+  canEditPrice: boolean;
+  promptPriceOnClaim?: boolean;
   busy: boolean;
   selectMode: boolean;
   selected: boolean;
@@ -63,6 +65,8 @@ export function ItemRow({
   assigneeName,
   status,
   isCreator,
+  canEditPrice,
+  promptPriceOnClaim = false,
   busy,
   selectMode,
   selected,
@@ -80,6 +84,9 @@ export function ItemRow({
   const [editingPrice, setEditingPrice] = useState(false);
   const [priceInput, setPriceInput] = useState("");
   const [priceBusy, setPriceBusy] = useState(false);
+  const [claimPricePrompt, setClaimPricePrompt] = useState(false);
+  const priceInputRef = useRef<HTMLInputElement>(null);
+  const claimPromptHandledRef = useRef(false);
 
   const statusLabel =
     status === "unclaimed"
@@ -91,10 +98,33 @@ export function ItemRow({
   const statusBadgeVariant =
     status === "unclaimed" ? "warning" : status === "mine" ? "success" : "muted";
 
-  function openPriceEdit() {
+  const showPriceEditor = canEditPrice && onUpdatePrice && !selectMode;
+
+  function openPriceEdit(fromClaim = false) {
     setPriceInput(item.price != null ? String(item.price) : "");
     setEditingPrice(true);
+    setClaimPricePrompt(fromClaim);
   }
+
+  function closePriceEdit() {
+    setEditingPrice(false);
+    setClaimPricePrompt(false);
+  }
+
+  useEffect(() => {
+    if (!promptPriceOnClaim) {
+      claimPromptHandledRef.current = false;
+      return;
+    }
+    if (!showPriceEditor || claimPromptHandledRef.current) return;
+
+    claimPromptHandledRef.current = true;
+    setPriceInput(item.price != null ? String(item.price) : "");
+    setEditingPrice(true);
+    setClaimPricePrompt(true);
+    const timer = window.setTimeout(() => priceInputRef.current?.focus(), 60);
+    return () => window.clearTimeout(timer);
+  }, [promptPriceOnClaim, showPriceEditor, item.price]);
 
   async function handlePriceSubmit(e: FormEvent) {
     e.preventDefault();
@@ -106,7 +136,7 @@ export function ItemRow({
     setPriceBusy(true);
     try {
       await onUpdatePrice(parsed);
-      setEditingPrice(false);
+      closePriceEdit();
     } finally {
       setPriceBusy(false);
     }
@@ -122,6 +152,7 @@ export function ItemRow({
         isExiting ? "animate-item-exit pointer-events-none" : "",
         justClaimed ? "animate-claim-flash" : "",
         selectMode && selected ? "ring-2 ring-primary/40 ring-inset" : "",
+        claimPricePrompt && editingPrice ? "ring-2 ring-primary/25 ring-inset" : "",
       ]
         .filter(Boolean)
         .join(" ")}
@@ -155,45 +186,75 @@ export function ItemRow({
               <span className="font-medium text-foreground">{item.name}</span>
               {item.quantity > 1 && <Badge variant="muted">×{item.quantity}</Badge>}
               {item.category && <Badge variant="default">{item.category}</Badge>}
-              {item.price != null && !editingPrice && (
+              {item.price != null && !editingPrice && showPriceEditor && (
+                <button
+                  type="button"
+                  onClick={() => openPriceEdit()}
+                  className="motion-safe:transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-md"
+                  aria-label={t("editPrice")}
+                >
+                  <Badge variant="muted">{formatAmount(item.price, locale)}</Badge>
+                </button>
+              )}
+              {item.price != null && !editingPrice && !showPriceEditor && (
                 <Badge variant="muted">{formatAmount(item.price, locale)}</Badge>
               )}
             </div>
             <p className="mt-1">
               <Badge variant={statusBadgeVariant}>{statusLabel}</Badge>
             </p>
-            {isCreator && onUpdatePrice && !selectMode && (
+            {showPriceEditor && (
               <div className="mt-2">
                 {editingPrice ? (
-                  <form onSubmit={handlePriceSubmit} className="flex flex-wrap items-center gap-2">
-                    <Input
-                      value={priceInput}
-                      onChange={(e) => setPriceInput(e.target.value)}
-                      placeholder={t("pricePlaceholder")}
-                      inputMode="decimal"
-                      disabled={priceBusy}
-                      className="h-8 max-w-[8rem] text-sm"
-                    />
-                    <Button type="submit" size="sm" disabled={priceBusy}>
-                      {priceBusy ? <Spinner label={t("loading")} /> : t("save")}
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => setEditingPrice(false)}
-                      disabled={priceBusy}
-                    >
-                      {t("cancel")}
-                    </Button>
+                  <form
+                    onSubmit={handlePriceSubmit}
+                    className="animate-section-in space-y-2 rounded-lg border border-primary/15 bg-white/80 p-2.5 shadow-sm"
+                  >
+                    {claimPricePrompt && (
+                      <p className="text-xs font-medium text-foreground">
+                        {t("howMuchDidItCost")}
+                      </p>
+                    )}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Input
+                        ref={priceInputRef}
+                        value={priceInput}
+                        onChange={(e) => setPriceInput(e.target.value)}
+                        placeholder={t("pricePlaceholder")}
+                        inputMode="decimal"
+                        disabled={priceBusy}
+                        className="h-8 max-w-32 text-sm"
+                        aria-label={t("priceLabel")}
+                      />
+                      <Button type="submit" size="sm" disabled={priceBusy}>
+                        {priceBusy ? <Spinner label={t("loading")} /> : t("save")}
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        onClick={closePriceEdit}
+                        disabled={priceBusy}
+                      >
+                        {claimPricePrompt ? t("skipPrice") : t("cancel")}
+                      </Button>
+                    </div>
                   </form>
+                ) : item.price == null ? (
+                  <button
+                    type="button"
+                    onClick={() => openPriceEdit()}
+                    className="text-xs font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded"
+                  >
+                    {t("addPrice")}
+                  </button>
                 ) : (
                   <button
                     type="button"
-                    onClick={openPriceEdit}
-                    className="text-xs font-medium text-primary hover:underline"
+                    onClick={() => openPriceEdit()}
+                    className="text-xs font-medium text-muted hover:text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded"
                   >
-                    {item.price != null ? t("editPrice") : t("setPrice")}
+                    {t("editPrice")}
                   </button>
                 )}
               </div>
@@ -208,7 +269,7 @@ export function ItemRow({
                 size="sm"
                 onClick={onClaim}
                 disabled={busy}
-                className="min-h-11 min-w-[5.5rem] gap-1.5 motion-safe:active:scale-[0.97]"
+                className="min-h-11 min-w-22 gap-1.5 motion-safe:active:scale-[0.97]"
               >
                 {busy ? (
                   <Spinner label={t("loading")} />
@@ -228,7 +289,7 @@ export function ItemRow({
                 variant="secondary"
                 onClick={onUnclaim}
                 disabled={busy}
-                className="min-h-11 min-w-[5.5rem] motion-safe:active:scale-[0.97]"
+                className="min-h-11 min-w-22 motion-safe:active:scale-[0.97]"
               >
                 {busy ? <Spinner label={t("loading")} /> : t("unclaim")}
               </Button>

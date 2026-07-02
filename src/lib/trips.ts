@@ -167,7 +167,9 @@ export async function updateItemPrice(
     .from(TABLES.items)
     .update({ price: normalized })
     .eq("id", itemId)
-    .eq("added_by_person_id", personId)
+    .or(
+      `added_by_person_id.eq.${personId},assigned_person_id.eq.${personId}`
+    )
     .select("id");
 
   if (error) throw error;

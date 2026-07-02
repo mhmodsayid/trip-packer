@@ -41,17 +41,18 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
   );
 });
 
-export function Input({
-  className = "",
-  ...props
-}: InputHTMLAttributes<HTMLInputElement>) {
+export const Input = forwardRef<
+  HTMLInputElement,
+  InputHTMLAttributes<HTMLInputElement>
+>(function Input({ className = "", ...props }, ref) {
   return (
     <input
+      ref={ref}
       className={`flex h-10 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${className}`}
       {...props}
     />
   );
-}
+});
 
 export function Textarea({
   className = "",
