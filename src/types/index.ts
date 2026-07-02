@@ -2,6 +2,8 @@ export interface Trip {
   id: string;
   name: string;
   pin: string;
+  trip_date: string | null;
+  owner_person_id: string | null;
   created_at: string;
 }
 

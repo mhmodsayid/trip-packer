@@ -6,8 +6,12 @@ create table if not exists tp_trips (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   pin text not null,
+  trip_date date,
+  owner_person_id uuid references tp_people(id) on delete set null,
   created_at timestamptz default now()
 );
+
+create index if not exists tp_trips_owner_person_id_idx on tp_trips(owner_person_id);
 
 create table if not exists tp_people (
   id uuid primary key default gen_random_uuid(),

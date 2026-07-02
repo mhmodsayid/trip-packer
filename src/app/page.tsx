@@ -9,17 +9,20 @@ import { ShareLink } from "@/components/ShareLink";
 import { useTranslation } from "@/components/LanguageProvider";
 import { Button, Card, Input, Spinner } from "@/components/ui";
 import { recordFailure } from "@/lib/attempts";
-import { buildJoinUrl } from "@/lib/storage";
+import { buildJoinUrl, setStoredPerson } from "@/lib/storage";
 import { formatError } from "@/lib/errors";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { extractTripIdFromJoinInput, isValidUuid } from "@/lib/uuid";
-import { createTrip } from "@/lib/trips";
+import { recordTripVisit } from "@/lib/trip-history";
+import { createTrip, joinTrip, setTripOwner } from "@/lib/trips";
 import type { Trip } from "@/types";
 
 export default function HomePage() {
   const router = useRouter();
   const { t, te } = useTranslation();
-  const [name, setName] = useState("");
+  const [tripName, setTripName] = useState("");
+  const [creatorName, setCreatorName] = useState("");
+  const [tripDate, setTripDate] = useState("");
   const [loading, setLoading] = useState(false);
   const [createdTrip, setCreatedTrip] = useState<Trip | null>(null);
   const [joinTripId, setJoinTripId] = useState("");
@@ -29,15 +32,25 @@ export default function HomePage() {
 
   async function handleCreate(e: FormEvent) {
     e.preventDefault();
-    const trimmed = name.trim();
-    if (!trimmed) return;
+    const trimmedTripName = tripName.trim();
+    const trimmedCreatorName = creatorName.trim();
+    if (!trimmedTripName || !trimmedCreatorName) return;
 
     setLoading(true);
     setCreateError(null);
 
     try {
-      const trip = await createTrip(trimmed);
-      setCreatedTrip(trip);
+      const trip = await createTrip(trimmedTripName, tripDate || null);
+      const { person, sessionId } = await joinTrip(trip.id, trimmedCreatorName);
+      await setTripOwner(trip.id, person.id);
+      setStoredPerson(trip.id, { id: person.id, name: person.name, sessionId });
+      recordTripVisit({
+        id: trip.id,
+        name: trip.name,
+        pin: trip.pin,
+        personName: person.name,
+      });
+      setCreatedTrip({ ...trip, owner_person_id: person.id });
     } catch (err) {
       setCreateError(formatError(err, te, "failedCreateTrip"));
     } finally {
@@ -88,9 +101,7 @@ export default function HomePage() {
         <div className="mt-6 flex flex-col gap-3">
           <Button
             className="w-full"
-            onClick={() =>
-              router.push(`/t/${createdTrip.id}/join?pin=${encodeURIComponent(createdTrip.pin)}`)
-            }
+            onClick={() => router.push(`/t/${createdTrip.id}`)}
           >
             {t("continueToList")}
           </Button>
@@ -116,12 +127,38 @@ export default function HomePage() {
         <form onSubmit={handleCreate} className="mt-4 space-y-3">
           <Input
             placeholder={t("tripNamePlaceholder")}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+            value={tripName}
+            onChange={(e) => setTripName(e.target.value)}
             disabled={loading}
             autoFocus
           />
-          <Button type="submit" className="w-full" disabled={loading || !name.trim()}>
+          <div>
+            <label htmlFor="creator-name" className="text-sm font-medium">
+              {t("yourName")}
+            </label>
+            <Input
+              id="creator-name"
+              placeholder={t("namePlaceholder")}
+              value={creatorName}
+              onChange={(e) => setCreatorName(e.target.value)}
+              disabled={loading}
+              className="mt-1"
+              required
+            />
+          </div>
+          <Input
+            type="date"
+            value={tripDate}
+            onChange={(e) => setTripDate(e.target.value)}
+            disabled={loading}
+            aria-label={t("tripDateOptional")}
+            className="text-muted"
+          />
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={loading || !tripName.trim() || !creatorName.trim()}
+          >
             {loading ? <Spinner label={t("loading")} /> : t("createTripButton")}
           </Button>
         </form>

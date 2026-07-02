@@ -78,6 +78,14 @@ export async function adminSetPinAction(tripId: string, formData: FormData) {
   revalidatePath(`/admin/trips/${tripId}`);
 }
 
+export async function adminSetTripDateAction(tripId: string, formData: FormData) {
+  await requireAdmin();
+  const raw = String(formData.get("trip_date") ?? "").trim();
+  await adminUpdateTrip(tripId, { trip_date: raw || null });
+  revalidatePath("/admin");
+  revalidatePath(`/admin/trips/${tripId}`);
+}
+
 export async function adminRegeneratePinAction(tripId: string) {
   await requireAdmin();
   await adminRegenerateTripPin(tripId);

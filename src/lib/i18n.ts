@@ -24,6 +24,8 @@ const translations = {
     removeFromHistory: "Remove {{name}} from recent trips",
     createTrip: "Create a new trip",
     tripNamePlaceholder: "Trip name (e.g. Yosemite Camping)",
+    tripDate: "Trip date",
+    tripDateOptional: "Trip date (optional)",
     createTripButton: "Create trip",
     joinExisting: "Join an existing trip",
     joinExistingHint: "Enter the trip ID from your organizer, then you'll be asked for the PIN.",
@@ -59,6 +61,10 @@ const translations = {
     cancel: "Cancel",
     shareJoinLink: "Share join link",
     hideShareLink: "Hide share link",
+    exportPdf: "Export PDF",
+    printBroughtBy: "Brought by",
+    printPerPerson: "Per person",
+    printNoItemsAssigned: "No items assigned.",
     packingList: "Packing list",
     membersTitle: "Members",
     membersEmpty: "No members yet.",
@@ -181,6 +187,7 @@ const translations = {
     adminSave: "Save",
     adminPin: "PIN",
     adminSetPin: "Set PIN",
+    adminSetTripDate: "Set trip date",
     adminRegeneratePin: "Regenerate PIN",
     adminDeleteTrip: "Delete trip",
     adminDeleteTripConfirm: 'Delete trip "{{name}}" and all its items and people?',
@@ -214,6 +221,14 @@ const translations = {
       "Enter this trip under a hidden admin identity? You won't appear in the member list or settlement split.",
     adminEnterTripConfirm: "Enter as admin",
     adminParticipantDefaultName: "Admin",
+
+    ownerBadge: "Owner",
+    tripSettings: "Trip settings",
+    removeMember: "Remove",
+    removeMemberTitle: "Remove member",
+    removeMemberConfirm:
+      'Remove "{{name}}" from this trip? This also removes their payments and unassigns their items.',
+    deleteTripConfirm: 'Delete trip "{{name}}" and all its items and people?',
 
     errors: {
       failedCreateTrip: "Failed to create trip.",
@@ -252,6 +267,7 @@ const translations = {
       nameTaken: "That name is already taken by someone else in this trip.",
       sessionExpired:
         "Your session on this device is no longer active. Please join again.",
+      notTripOwner: "Only the trip owner can perform this action.",
       missingSupabase:
         "Missing Supabase configuration. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY in .env.local",
     },
@@ -276,6 +292,8 @@ const translations = {
     removeFromHistory: "إزالة {{name}} من الرحلات الأخيرة",
     createTrip: "إنشاء رحلة جديدة",
     tripNamePlaceholder: "اسم الرحلة (مثال: camping Yosemite)",
+    tripDate: "تاريخ الرحلة",
+    tripDateOptional: "تاريخ الرحلة (اختياري)",
     createTripButton: "إنشاء الرحلة",
     joinExisting: "الانضمام لرحلة موجودة",
     joinExistingHint: "أدخل معرّف الرحلة من المنظّم، ثم سيُطلب منك رمز PIN.",
@@ -312,6 +330,10 @@ const translations = {
     cancel: "إلغاء",
     shareJoinLink: "مشاركة رابط الانضمام",
     hideShareLink: "إخفاء رابط المشاركة",
+    exportPdf: "تصدير PDF",
+    printBroughtBy: "يحضره",
+    printPerPerson: "لكل شخص",
+    printNoItemsAssigned: "لا توجد عناصر محجوزة.",
     packingList: "قائمة التعبئة",
     membersTitle: "الأعضاء",
     membersEmpty: "لا يوجد أعضاء بعد.",
@@ -434,6 +456,7 @@ const translations = {
     adminSave: "حفظ",
     adminPin: "رمز PIN",
     adminSetPin: "تعيين PIN",
+    adminSetTripDate: "تعيين تاريخ الرحلة",
     adminRegeneratePin: "إنشاء PIN جديد",
     adminDeleteTrip: "حذف الرحلة",
     adminDeleteTripConfirm: 'حذف الرحلة "{{name}}" وجميع عناصرها وأشخاصها؟',
@@ -467,6 +490,14 @@ const translations = {
       "الدخول إلى هذه الرحلة بهوية مشرف مخفية؟ لن تظهر في قائمة الأعضاء أو في تقسيم التسوية.",
     adminEnterTripConfirm: "دخول كمشرف",
     adminParticipantDefaultName: "المشرف",
+
+    ownerBadge: "المالك",
+    tripSettings: "إعدادات الرحلة",
+    removeMember: "إزالة",
+    removeMemberTitle: "إزالة عضو",
+    removeMemberConfirm:
+      'إزالة "{{name}}" من هذه الرحلة؟ سيؤدي ذلك أيضاً إلى حذف مدفوعاته وإلغاء حجز عناصره.',
+    deleteTripConfirm: 'حذف الرحلة "{{name}}" وجميع عناصرها وأشخاصها؟',
 
     errors: {
       failedCreateTrip: "فشل إنشاء الرحلة.",
@@ -504,6 +535,7 @@ const translations = {
         "هذا الاسم نشط على جهاز آخر. تابع على هذا الجهاز بالزر أدناه، أو اختر اسماً مختلفاً.",
       nameTaken: "هذا الاسم مستخدم بالفعل من شخص آخر في هذه الرحلة.",
       sessionExpired: "جلستك على هذا الجهاز لم تعد نشطة. يرجى الانضمام مجدداً.",
+      notTripOwner: "يمكن لمالك الرحلة فقط تنفيذ هذا الإجراء.",
       missingSupabase:
         "إعداد Supabase ناقص. اضبط NEXT_PUBLIC_SUPABASE_URL و NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY في .env.local",
     },

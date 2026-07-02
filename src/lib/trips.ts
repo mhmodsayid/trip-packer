@@ -36,6 +36,21 @@ function isSessionActive(row: {
   return Date.now() - lastActive < PRESENCE_TIMEOUT_MS;
 }
 
+function mapTrip(row: Record<string, unknown>): Trip {
+  const trip = row as unknown as Trip;
+  const rawDate = row.trip_date;
+  const rawOwner = row.owner_person_id;
+  return {
+    ...trip,
+    trip_date:
+      rawDate != null && rawDate !== ""
+        ? String(rawDate).slice(0, 10)
+        : null,
+    owner_person_id:
+      rawOwner != null && rawOwner !== "" ? String(rawOwner) : null,
+  };
+}
+
 function mapItem(row: Record<string, unknown>): Item {
   const item = row as unknown as Item;
   return {
@@ -52,18 +67,199 @@ function mapPayment(row: Record<string, unknown>): Payment {
   };
 }
 
-export async function createTrip(name: string): Promise<Trip> {
+export async function createTrip(
+  name: string,
+  tripDate?: string | null
+): Promise<Trip> {
   const supabase = getSupabase();
   const pin = generatePin();
+  const payload: { name: string; pin: string; trip_date?: string } = {
+    name: name.trim(),
+    pin,
+  };
+  if (tripDate) payload.trip_date = tripDate;
 
   const { data, error } = await supabase
     .from(TABLES.trips)
-    .insert({ name: name.trim(), pin })
+    .insert(payload)
     .select()
     .single();
 
   if (error) throw error;
-  return data as Trip;
+  return mapTrip(data as Record<string, unknown>);
+}
+
+export async function setTripOwner(tripId: string, personId: string): Promise<void> {
+  const supabase = getSupabase();
+
+  const { data: person, error: personError } = await supabase
+    .from(TABLES.people)
+    .select("id")
+    .eq("id", personId)
+    .eq("trip_id", tripId)
+    .maybeSingle();
+
+  if (personError) throw personError;
+  if (!person) throw new AppError("actionFailed");
+
+  const { data, error } = await supabase
+    .from(TABLES.trips)
+    .update({ owner_person_id: personId })
+    .eq("id", tripId)
+    .select("id");
+
+  if (error) throw error;
+  if (!data?.length) throw new AppError("actionFailed");
+}
+
+async function verifyTripOwner(
+  tripId: string,
+  personId: string,
+  sessionId: string
+): Promise<void> {
+  const supabase = getSupabase();
+
+  const { data: person, error: personError } = await supabase
+    .from(TABLES.people)
+    .select("id, active_session_id")
+    .eq("id", personId)
+    .eq("trip_id", tripId)
+    .maybeSingle();
+
+  if (personError) throw personError;
+  if (!person || person.active_session_id !== sessionId) {
+    throw new AppError("sessionExpired");
+  }
+
+  const { data: trip, error: tripError } = await supabase
+    .from(TABLES.trips)
+    .select("owner_person_id")
+    .eq("id", tripId)
+    .maybeSingle();
+
+  if (tripError) throw tripError;
+  if (!trip || trip.owner_person_id !== personId) {
+    throw new AppError("notTripOwner");
+  }
+}
+
+export async function ownerDeleteItem(
+  itemId: string,
+  tripId: string,
+  personId: string,
+  sessionId: string
+): Promise<void> {
+  await verifyTripOwner(tripId, personId, sessionId);
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from(TABLES.items)
+    .delete()
+    .eq("id", itemId)
+    .eq("trip_id", tripId)
+    .select("id");
+
+  if (error) throw error;
+  if (!data?.length) throw new AppError("couldNotDeleteItem");
+}
+
+export async function ownerUpdateItemName(
+  itemId: string,
+  name: string,
+  tripId: string,
+  personId: string,
+  sessionId: string
+): Promise<void> {
+  const trimmed = name.trim();
+  if (!trimmed) throw new AppError("itemNameRequired");
+
+  await verifyTripOwner(tripId, personId, sessionId);
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from(TABLES.items)
+    .update({ name: trimmed })
+    .eq("id", itemId)
+    .eq("trip_id", tripId)
+    .select("id");
+
+  if (error) throw error;
+  if (!data?.length) throw new AppError("couldNotEditItem");
+}
+
+export async function ownerUpdateItemPrice(
+  itemId: string,
+  price: number | null,
+  tripId: string,
+  personId: string,
+  sessionId: string
+): Promise<void> {
+  await verifyTripOwner(tripId, personId, sessionId);
+  const supabase = getSupabase();
+  const normalized = price != null ? roundAmount(price) : null;
+  const { data, error } = await supabase
+    .from(TABLES.items)
+    .update({ price: normalized })
+    .eq("id", itemId)
+    .eq("trip_id", tripId)
+    .select("id");
+
+  if (error) throw error;
+  if (!data?.length) throw new AppError("couldNotUpdateItem");
+}
+
+export async function ownerRemoveMember(
+  tripId: string,
+  ownerPersonId: string,
+  sessionId: string,
+  targetPersonId: string
+): Promise<void> {
+  await verifyTripOwner(tripId, ownerPersonId, sessionId);
+  if (targetPersonId === ownerPersonId) {
+    throw new AppError("actionFailed");
+  }
+
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from(TABLES.people)
+    .delete()
+    .eq("id", targetPersonId)
+    .eq("trip_id", tripId)
+    .select("id");
+
+  if (error) throw error;
+  if (!data?.length) throw new AppError("failedRemovePerson");
+}
+
+export async function ownerUpdateTrip(
+  tripId: string,
+  personId: string,
+  sessionId: string,
+  updates: { name?: string; pin?: string; trip_date?: string | null }
+): Promise<void> {
+  await verifyTripOwner(tripId, personId, sessionId);
+  const supabase = getSupabase();
+  const { error } = await supabase.from(TABLES.trips).update(updates).eq("id", tripId);
+  if (error) throw error;
+}
+
+export async function ownerRegenerateTripPin(
+  tripId: string,
+  personId: string,
+  sessionId: string
+): Promise<string> {
+  const pin = generatePin();
+  await ownerUpdateTrip(tripId, personId, sessionId, { pin });
+  return pin;
+}
+
+export async function ownerDeleteTrip(
+  tripId: string,
+  personId: string,
+  sessionId: string
+): Promise<void> {
+  await verifyTripOwner(tripId, personId, sessionId);
+  const supabase = getSupabase();
+  const { error } = await supabase.from(TABLES.trips).delete().eq("id", tripId);
+  if (error) throw error;
 }
 
 export async function getTrip(tripId: string): Promise<Trip | null> {
@@ -75,7 +271,7 @@ export async function getTrip(tripId: string): Promise<Trip | null> {
     .maybeSingle();
 
   if (error) throw error;
-  return data as Trip | null;
+  return data ? mapTrip(data as Record<string, unknown>) : null;
 }
 
 export async function joinTrip(

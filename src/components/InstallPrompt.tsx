@@ -75,7 +75,7 @@ export function InstallPrompt() {
     <div
       role="region"
       aria-label={t("installAppTitle")}
-      className="border-b border-primary/15 bg-primary/5 px-4 py-2.5 safe-bottom"
+      className="border-b border-primary/15 bg-primary/5 px-4 py-2.5 safe-bottom print:hidden"
     >
       <div className="mx-auto flex max-w-3xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-foreground">

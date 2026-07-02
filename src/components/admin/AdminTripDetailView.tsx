@@ -24,6 +24,8 @@ import {
 
   adminSetPinAction,
 
+  adminSetTripDateAction,
+
   adminUpdateItemAction,
 
 } from "@/app/admin/actions";
@@ -234,6 +236,13 @@ export function AdminTripDetailView({ detail }: AdminTripDetailViewProps) {
 
         </p>
 
+        {trip.trip_date && (
+          <p className="text-sm text-muted">
+            {t("tripDate")}:{" "}
+            <span className="font-medium text-foreground">{trip.trip_date}</span>
+          </p>
+        )}
+
 
 
         <form action={adminRenameTripAction.bind(null, trip.id)} className="flex flex-wrap gap-2">
@@ -243,6 +252,32 @@ export function AdminTripDetailView({ detail }: AdminTripDetailViewProps) {
           <Button type="submit" variant="secondary" size="sm">
 
             {t("adminRenameTrip")}
+
+          </Button>
+
+        </form>
+
+
+
+        <form action={adminSetTripDateAction.bind(null, trip.id)} className="flex flex-wrap gap-2">
+
+          <Input
+
+            name="trip_date"
+
+            type="date"
+
+            defaultValue={trip.trip_date ?? ""}
+
+            className="min-w-[160px] max-w-[200px]"
+
+            aria-label={t("tripDate")}
+
+          />
+
+          <Button type="submit" variant="secondary" size="sm">
+
+            {t("adminSetTripDate")}
 
           </Button>
 

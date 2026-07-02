@@ -12,6 +12,7 @@ interface ItemListProps {
   items: Item[];
   people: Person[];
   currentPersonId: string;
+  isOwner?: boolean;
   onClaim: (itemId: string) => Promise<void>;
   onUnclaim: (itemId: string) => Promise<void>;
   onDelete: (itemId: string) => Promise<void>;
@@ -25,6 +26,7 @@ export function ItemList({
   items,
   people,
   currentPersonId,
+  isOwner = false,
   onClaim,
   onUnclaim,
   onDelete,
@@ -127,7 +129,10 @@ export function ItemList({
   }
 
   async function handleDelete(item: Item) {
-    if (!item.added_by_person_id || item.added_by_person_id !== currentPersonId) {
+    const isCreator =
+      item.added_by_person_id !== null &&
+      item.added_by_person_id === currentPersonId;
+    if (!isCreator && !isOwner) {
       return;
     }
     if (!window.confirm(t("deleteConfirm", { name: item.name }))) {
@@ -317,7 +322,9 @@ export function ItemList({
             const isCreator =
               item.added_by_person_id !== null &&
               item.added_by_person_id === currentPersonId;
-            const canEditPrice = isCreator || isMine;
+            const canEditPrice = isCreator || isMine || isOwner;
+            const canEditName = isCreator || isOwner;
+            const canDelete = isCreator || isOwner;
             const busy = actionId === item.id || bulkBusy;
             const isExiting = exitingItems.has(item.id);
             const justClaimed = justClaimedIds.has(item.id);
@@ -328,7 +335,7 @@ export function ItemList({
                 item={item}
                 assigneeName={assigneeName}
                 status={status}
-                isCreator={isCreator}
+                canDelete={canDelete}
                 canEditPrice={canEditPrice}
                 busy={busy}
                 selectMode={selectMode}
@@ -347,7 +354,7 @@ export function ItemList({
                     : undefined
                 }
                 onUpdateName={
-                  isCreator && onUpdateName
+                  canEditName && onUpdateName
                     ? (name) => handleAction(() => onUpdateName(item.id, name), item.id)
                     : undefined
                 }

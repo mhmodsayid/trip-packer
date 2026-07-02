@@ -199,3 +199,16 @@ html[dir="rtl"] {
     scroll-behavior: auto !important;
   }
 }
+
+@media print {
+  @page {
+    margin: 1.2cm;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+}

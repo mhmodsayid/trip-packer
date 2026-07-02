@@ -90,7 +90,7 @@ export async function getTripAdminDetail(tripId: string): Promise<AdminTripDetai
 
 export async function adminUpdateTrip(
   tripId: string,
-  updates: { name?: string; pin?: string }
+  updates: { name?: string; pin?: string; trip_date?: string | null }
 ): Promise<void> {
   const supabase = getServerSupabase();
   const { error } = await supabase.from(TABLES.trips).update(updates).eq("id", tripId);

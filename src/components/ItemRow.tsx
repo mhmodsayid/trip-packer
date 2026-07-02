@@ -12,7 +12,7 @@ interface ItemRowProps {
   item: Item;
   assigneeName: string | null;
   status: ItemStatus;
-  isCreator: boolean;
+  canDelete: boolean;
   canEditPrice: boolean;
   busy: boolean;
   selectMode: boolean;
@@ -64,7 +64,7 @@ export function ItemRow({
   item,
   assigneeName,
   status,
-  isCreator,
+  canDelete,
   canEditPrice,
   busy,
   selectMode,
@@ -322,7 +322,7 @@ export function ItemRow({
                 {busy ? <Spinner label={t("loading")} /> : t("unclaim")}
               </Button>
             )}
-            {isCreator && (
+            {canDelete && (
               <Button
                 size="sm"
                 variant="ghost"

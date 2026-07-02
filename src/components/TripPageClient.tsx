@@ -11,9 +11,12 @@ import { ItemList } from "@/components/ItemList";
 import { PaymentsPanel } from "@/components/PaymentsPanel";
 import { SettlementSummary } from "@/components/SettlementSummary";
 import { ShareLink } from "@/components/ShareLink";
+import { TripPrintView } from "@/components/TripPrintView";
+import { TripSettingsPanel } from "@/components/TripSettingsPanel";
 import { useTranslation } from "@/components/LanguageProvider";
-import { Button, Card, Spinner } from "@/components/ui";
+import { Button, Card, Spinner, Badge } from "@/components/ui";
 import { formatError, errorCode } from "@/lib/errors";
+import { formatDate } from "@/lib/format-date";
 import { isAdminPersonId } from "@/lib/people";
 import { buildJoinUrl, clearStoredPerson, getStoredPerson, setStoredPerson } from "@/lib/storage";
 import { recordTripVisit } from "@/lib/trip-history";
@@ -30,6 +33,10 @@ import {
   getTrip,
   insertItems,
   logout,
+  ownerDeleteItem,
+  ownerRemoveMember,
+  ownerUpdateItemName,
+  ownerUpdateItemPrice,
   renamePerson,
   subscribeToItems,
   subscribeToPayments,
@@ -50,7 +57,7 @@ interface TripPageClientProps {
 
 export function TripPageClient({ tripId }: TripPageClientProps) {
   const router = useRouter();
-  const { t, te } = useTranslation();
+  const { t, te, locale } = useTranslation();
   const [trip, setTrip] = useState<Trip | null>(null);
   const [items, setItems] = useState<Item[]>([]);
   const [people, setPeople] = useState<Person[]>([]);
@@ -60,9 +67,11 @@ export function TripPageClient({ tripId }: TripPageClientProps) {
   const [showShare, setShowShare] = useState(false);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [changeNameOpen, setChangeNameOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [summaryOpen, setSummaryOpen] = useState(false);
   const addButtonRef = useRef<HTMLButtonElement>(null);
   const changeNameRef = useRef<HTMLButtonElement>(null);
+  const settingsButtonRef = useRef<HTMLButtonElement>(null);
   const summaryButtonRef = useRef<HTMLButtonElement>(null);
   const [person, setPerson] = useState<StoredPerson | null>(null);
 
@@ -196,6 +205,44 @@ export function TripPageClient({ tripId }: TripPageClientProps) {
 
   const joinUrl = buildJoinUrl(trip.id, trip.pin);
   const isAdminSession = isAdminPersonId(people, person.id);
+  const isOwner =
+    !!person &&
+    !!trip.owner_person_id &&
+    person.id === trip.owner_person_id;
+
+  async function handleItemDelete(itemId: string) {
+    if (!person) return;
+    if (isOwner) {
+      await ownerDeleteItem(itemId, tripId, person.id, person.sessionId);
+    } else {
+      await deleteItem(itemId, person.id);
+    }
+  }
+
+  async function handleItemUpdateName(itemId: string, name: string) {
+    if (!person) return;
+    if (isOwner) {
+      await ownerUpdateItemName(itemId, name, tripId, person.id, person.sessionId);
+    } else {
+      await updateItemName(itemId, name, person.id);
+    }
+  }
+
+  async function handleItemUpdatePrice(itemId: string, price: number | null) {
+    if (!person) return;
+    if (isOwner) {
+      await ownerUpdateItemPrice(itemId, price, tripId, person.id, person.sessionId);
+    } else {
+      await updateItemPrice(itemId, price, person.id);
+    }
+  }
+
+  async function handleRemoveMember(targetPersonId: string) {
+    if (!person) return;
+    await ownerRemoveMember(tripId, person.id, person.sessionId, targetPersonId);
+    const peopleData = await getPeople(tripId);
+    setPeople(peopleData);
+  }
 
   async function handleRename(newName: string) {
     if (!person) return;
@@ -227,16 +274,26 @@ export function TripPageClient({ tripId }: TripPageClientProps) {
   }
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-6 sm:py-8 animate-section-in">
+    <>
+    <main className="mx-auto max-w-3xl px-4 py-6 sm:py-8 animate-section-in print:hidden">
       <header className="mb-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
             <h1 className="text-2xl font-bold tracking-tight">{trip.name}</h1>
+            {trip.trip_date && (
+              <p className="mt-1 text-sm text-muted">
+                {t("tripDate")}:{" "}
+                <time dateTime={trip.trip_date} className="font-medium text-foreground">
+                  {formatDate(trip.trip_date, locale)}
+                </time>
+              </p>
+            )}
             <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted">
               <span>
                 {t("signedInAs")}{" "}
                 <span className="font-medium text-foreground">{person.name}</span>
               </span>
+              {isOwner && <Badge variant="default">{t("ownerBadge")}</Badge>}
               {!isAdminSession && (
                 <>
                   <button
@@ -284,6 +341,15 @@ export function TripPageClient({ tripId }: TripPageClientProps) {
             </p>
           </div>
           <div className="flex shrink-0 flex-wrap gap-2">
+            {isOwner && (
+              <Button
+                ref={settingsButtonRef}
+                variant="secondary"
+                onClick={() => setSettingsOpen(true)}
+              >
+                {t("tripSettings")}
+              </Button>
+            )}
             <Button
               variant="secondary"
               onClick={() => router.push("/")}
@@ -306,6 +372,9 @@ export function TripPageClient({ tripId }: TripPageClientProps) {
             >
               {showShare ? t("hideShareLink") : t("shareJoinLink")}
             </Button>
+            <Button variant="secondary" onClick={() => window.print()}>
+              {t("exportPdf")}
+            </Button>
           </div>
         </div>
       </header>
@@ -321,6 +390,9 @@ export function TripPageClient({ tripId }: TripPageClientProps) {
         items={items}
         payments={payments}
         currentPersonId={person.id}
+        ownerPersonId={trip.owner_person_id}
+        isOwner={isOwner}
+        onRemoveMember={isOwner ? handleRemoveMember : undefined}
       />
 
       <section className="mb-8">
@@ -347,11 +419,12 @@ export function TripPageClient({ tripId }: TripPageClientProps) {
           items={items}
           people={people}
           currentPersonId={person.id}
+          isOwner={isOwner}
           onClaim={(id) => claimItem(id, person.id)}
           onUnclaim={(id) => unclaimItem(id, person.id)}
-          onDelete={(id) => deleteItem(id, person.id)}
-          onUpdatePrice={(id, price) => updateItemPrice(id, price, person.id)}
-          onUpdateName={(id, name) => updateItemName(id, name, person.id)}
+          onDelete={handleItemDelete}
+          onUpdatePrice={handleItemUpdatePrice}
+          onUpdateName={handleItemUpdateName}
           onClaimMany={(ids) => claimItems(ids, person.id)}
           loading={loading}
         />
@@ -407,6 +480,19 @@ export function TripPageClient({ tripId }: TripPageClientProps) {
       </Modal>
 
       <Modal
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        title={t("tripSettings")}
+        returnFocusRef={settingsButtonRef}
+      >
+        <TripSettingsPanel
+          trip={trip}
+          person={person}
+          onTripUpdated={(updated) => setTrip(updated)}
+        />
+      </Modal>
+
+      <Modal
         open={summaryOpen}
         onClose={() => setSummaryOpen(false)}
         title={t("summaryTitle")}
@@ -415,5 +501,8 @@ export function TripPageClient({ tripId }: TripPageClientProps) {
         <SettlementSummary people={people} items={items} payments={payments} />
       </Modal>
     </main>
+
+    <TripPrintView trip={trip} items={items} people={people} payments={payments} />
+    </>
   );
 }
