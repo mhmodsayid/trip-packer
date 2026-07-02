@@ -13,6 +13,12 @@ const translations = {
     langEnglish: "English",
     switchLanguage: "Switch language",
 
+    installApp: "Install app",
+    installAppTitle: "Install Trip Packer",
+    installAppHint: "Install Trip Packer for quick access from your home screen.",
+    installIosHint: 'Tap Share, then "Add to Home Screen" to install the app.',
+    dismissInstall: "Not now",
+
     createTrip: "Create a new trip",
     tripNamePlaceholder: "Trip name (e.g. Yosemite Camping)",
     createTripButton: "Create trip",
@@ -231,6 +237,12 @@ const translations = {
     langArabic: "العربية",
     langEnglish: "English",
     switchLanguage: "تغيير اللغة",
+
+    installApp: "تثبيت التطبيق",
+    installAppTitle: "تثبيت مُنَظِّم الرحلة",
+    installAppHint: "ثبّت التطبيق للوصول السريع من الشاشة الرئيسية.",
+    installIosHint: 'اضغط «مشاركة» ثم «إضافة إلى الشاشة الرئيسية» لتثبيت التطبيق.',
+    dismissInstall: "ليس الآن",
 
     createTrip: "إنشاء رحلة جديدة",
     tripNamePlaceholder: "اسم الرحلة (مثال: camping Yosemite)",
