@@ -27,14 +27,15 @@ npm install
 
 ### 2. Set up Supabase
 
-1. Create a new project at [supabase.com](https://supabase.com/dashboard).
+This app uses **prefixed tables** (`tp_trips`, `tp_people`, `tp_items`) so it can share a Supabase Postgres instance with other apps (e.g. m3alm_al_aksa) without touching their tables.
+
+1. Use your existing Supabase project (or create a new one).
 2. Open **SQL Editor** and run the entire contents of [`supabase/schema.sql`](supabase/schema.sql).
-   - Creates `trips`, `people`, and `items` tables
-   - Enables Realtime on `items` and `people`
-   - Sets permissive RLS policies for anonymous access (see security note in the SQL file)
 3. Go to **Project Settings → API** and copy:
-   - **Project URL**
-   - **anon public** key
+   - **Project URL** → `NEXT_PUBLIC_SUPABASE_URL`
+   - **anon public** key → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+
+> **Note:** Apps that use Prisma with `DATABASE_URL` only (no Supabase JS client) still have these API keys in the dashboard — they are just not stored in the repo.
 
 ### 3. Configure environment variables
 
@@ -82,7 +83,7 @@ npm start
    https://your-app.vercel.app/t/<trip-uuid>/join?pin=ABC123
    ```
 2. **Share** — Send the full link (includes both the unguessable trip UUID and PIN).
-3. **Join** — Participant opens the link. The app validates the PIN against the trip, asks for a name, creates or reuses a `people` row, and stores `{ id, name }` in `localStorage` keyed by trip ID.
+3. **Join** — Participant opens the link. The app validates the PIN against the trip, asks for a name, creates or reuses a `tp_people` row, and stores `{ id, name }` in `localStorage` keyed by trip ID.
 4. **Trip page** — `/t/<tripId>` loads the item list. If no stored person exists, the user is redirected to the join page (they need the full link with PIN again).
 5. **Claims** — Anyone on the trip can claim unassigned items. Items assigned to others are visible but not claimable. You can only unclaim your own items.
 

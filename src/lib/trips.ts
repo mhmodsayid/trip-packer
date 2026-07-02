@@ -1,5 +1,6 @@
 import { getSupabase } from "./supabase";
 import { generatePin } from "./pin";
+import { TABLES } from "./tables";
 import type { Item, Person, Trip } from "@/types";
 
 export async function createTrip(name: string): Promise<Trip> {
@@ -7,7 +8,7 @@ export async function createTrip(name: string): Promise<Trip> {
   const pin = generatePin();
 
   const { data, error } = await supabase
-    .from("trips")
+    .from(TABLES.trips)
     .insert({ name: name.trim(), pin })
     .select()
     .single();
@@ -19,7 +20,7 @@ export async function createTrip(name: string): Promise<Trip> {
 export async function getTrip(tripId: string): Promise<Trip | null> {
   const supabase = getSupabase();
   const { data, error } = await supabase
-    .from("trips")
+    .from(TABLES.trips)
     .select("*")
     .eq("id", tripId)
     .maybeSingle();
@@ -36,7 +37,7 @@ export async function findOrCreatePerson(
   const trimmed = name.trim();
 
   const { data: existing } = await supabase
-    .from("people")
+    .from(TABLES.people)
     .select("*")
     .eq("trip_id", tripId)
     .ilike("name", trimmed)
@@ -45,7 +46,7 @@ export async function findOrCreatePerson(
   if (existing) return existing as Person;
 
   const { data, error } = await supabase
-    .from("people")
+    .from(TABLES.people)
     .insert({ trip_id: tripId, name: trimmed })
     .select()
     .single();
@@ -57,7 +58,7 @@ export async function findOrCreatePerson(
 export async function getPeople(tripId: string): Promise<Person[]> {
   const supabase = getSupabase();
   const { data, error } = await supabase
-    .from("people")
+    .from(TABLES.people)
     .select("*")
     .eq("trip_id", tripId)
     .order("name");
@@ -69,7 +70,7 @@ export async function getPeople(tripId: string): Promise<Person[]> {
 export async function getItems(tripId: string): Promise<Item[]> {
   const supabase = getSupabase();
   const { data, error } = await supabase
-    .from("items")
+    .from(TABLES.items)
     .select("*")
     .eq("trip_id", tripId)
     .order("created_at", { ascending: true });
@@ -92,7 +93,7 @@ export async function insertItems(
     category: item.category,
   }));
 
-  const { error } = await supabase.from("items").insert(rows);
+  const { error } = await supabase.from(TABLES.items).insert(rows);
   if (error) throw error;
   return rows.length;
 }
@@ -103,7 +104,7 @@ export async function claimItem(
 ): Promise<void> {
   const supabase = getSupabase();
   const { data, error } = await supabase
-    .from("items")
+    .from(TABLES.items)
     .update({ assigned_person_id: personId })
     .eq("id", itemId)
     .is("assigned_person_id", null)
@@ -116,7 +117,7 @@ export async function claimItem(
 export async function unclaimItem(itemId: string, personId: string): Promise<void> {
   const supabase = getSupabase();
   const { data, error } = await supabase
-    .from("items")
+    .from(TABLES.items)
     .update({ assigned_person_id: null })
     .eq("id", itemId)
     .eq("assigned_person_id", personId)
@@ -128,7 +129,7 @@ export async function unclaimItem(itemId: string, personId: string): Promise<voi
 
 export async function deleteItem(itemId: string): Promise<void> {
   const supabase = getSupabase();
-  const { error } = await supabase.from("items").delete().eq("id", itemId);
+  const { error } = await supabase.from(TABLES.items).delete().eq("id", itemId);
   if (error) throw error;
 }
 
@@ -144,7 +145,7 @@ export function subscribeToItems(
       {
         event: "*",
         schema: "public",
-        table: "items",
+        table: TABLES.items,
         filter: `trip_id=eq.${tripId}`,
       },
       () => onChange()
@@ -168,7 +169,7 @@ export function subscribeToPeople(
       {
         event: "*",
         schema: "public",
-        table: "people",
+        table: TABLES.people,
         filter: `trip_id=eq.${tripId}`,
       },
       () => onChange()
