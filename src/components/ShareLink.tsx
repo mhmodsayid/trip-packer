@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { Button, Card } from "./ui";
 
@@ -56,12 +57,13 @@ export function ShareLink({ url, pin }: ShareLinkProps) {
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
         {qrDataUrl && (
-          <img
+          <Image
             src={qrDataUrl}
             alt="QR code for join link"
             className="mx-auto rounded-lg border border-border sm:mx-0"
             width={180}
             height={180}
+            unoptimized
           />
         )}
         <div className="min-w-0 flex-1 space-y-3">

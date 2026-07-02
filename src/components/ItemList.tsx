@@ -26,6 +26,7 @@ export function ItemList({
   const [filter, setFilter] = useState<ItemFilter>("all");
   const [search, setSearch] = useState("");
   const [actionId, setActionId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const peopleMap = useMemo(() => {
     const map = new Map<string, string>();
@@ -62,8 +63,11 @@ export function ItemList({
 
   async function handleAction(fn: () => Promise<void>, itemId: string) {
     setActionId(itemId);
+    setActionError(null);
     try {
       await fn();
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "Action failed.");
     } finally {
       setActionId(null);
     }
@@ -100,6 +104,10 @@ export function ItemList({
           className="sm:max-w-xs"
         />
       </div>
+
+      {actionError && (
+        <p className="text-sm text-red-600">{actionError}</p>
+      )}
 
       {loading ? (
         <div className="flex justify-center py-12">

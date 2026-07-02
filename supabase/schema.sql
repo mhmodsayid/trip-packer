@@ -31,6 +31,10 @@ create table if not exists items (
 create index if not exists items_trip_id_idx on items(trip_id);
 create index if not exists items_assigned_person_id_idx on items(assigned_person_id);
 
+-- Required for Realtime filters on these tables
+alter table items replica identity full;
+alter table people replica identity full;
+
 -- Realtime: broadcast changes to connected clients
 alter publication supabase_realtime add table items;
 alter publication supabase_realtime add table people;
