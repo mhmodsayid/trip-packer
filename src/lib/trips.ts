@@ -1,5 +1,10 @@
 import { getSupabase } from "./supabase";
 import { AppError } from "./errors";
+import {
+  buildExistingNameSet,
+  filterNewItems,
+  type InsertItemsResult,
+} from "./item-dedupe";
 import { generatePin } from "./pin";
 import { TABLES } from "./tables";
 import type { Item, Person, Trip } from "@/types";
@@ -103,13 +108,21 @@ export async function insertItems(
   tripId: string,
   addedByPersonId: string,
   items: { name: string; quantity: number; category: string | null }[]
-): Promise<number> {
-  if (items.length === 0) return 0;
+): Promise<InsertItemsResult> {
+  if (items.length === 0) return { added: 0, skipped: 0 };
+
+  const existing = await getItems(tripId);
+  const existingNames = buildExistingNameSet(existing);
+  const { toInsert, skippedDuplicates } = filterNewItems(items, existingNames);
+
+  if (toInsert.length === 0) {
+    return { added: 0, skipped: skippedDuplicates };
+  }
 
   const supabase = getSupabase();
-  const rows = items.map((item) => ({
+  const rows = toInsert.map((item) => ({
     trip_id: tripId,
-    name: item.name,
+    name: item.name.trim(),
     quantity: item.quantity,
     category: item.category,
     added_by_person_id: addedByPersonId,
@@ -117,7 +130,7 @@ export async function insertItems(
 
   const { error } = await supabase.from(TABLES.items).insert(rows);
   if (error) throw error;
-  return rows.length;
+  return { added: rows.length, skipped: skippedDuplicates };
 }
 
 export async function claimItem(

@@ -95,6 +95,10 @@ const translations = {
     loading: "Loading",
 
     itemAdded: "Item added.",
+    itemAlreadyExists: "This item already exists.",
+    addedWithSkipped: "Added {{added}}, skipped {{skipped}} duplicates.",
+    importedWithSkipped: "Imported {{added}} from {{file}}, skipped {{skipped}} duplicates.",
+    allDuplicatesSkipped: "All {{count}} items were duplicates — nothing added.",
     addedItems: "Added {{count}} items.",
     addedItem: "Added 1 item.",
     importedItems: "Imported {{count}} items from {{file}}.",
@@ -261,6 +265,10 @@ const translations = {
     loading: "جاري التحميل",
 
     itemAdded: "تمت إضافة العنصر.",
+    itemAlreadyExists: "هذا العنصر موجود بالفعل.",
+    addedWithSkipped: "تمت إضافة {{added}}، وتخطّي {{skipped}} مكررات.",
+    importedWithSkipped: "تم استيراد {{added}} من {{file}}، وتخطّي {{skipped}} مكررات.",
+    allDuplicatesSkipped: "جميع {{count}} عناصر كانت مكررة — لم تُضف أي عناصر.",
     addedItems: "تمت إضافة {{count}} عناصر.",
     addedItem: "تمت إضافة عنصر واحد.",
     importedItems: "تم استيراد {{count}} عناصر من {{file}}.",

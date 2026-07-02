@@ -4,15 +4,44 @@ import { useRef, useState } from "react";
 import * as XLSX from "xlsx";
 import { useTranslation } from "@/components/LanguageProvider";
 import { formatError } from "@/lib/errors";
+import type { InsertItemsResult } from "@/lib/item-dedupe";
+import type { TranslationKey } from "@/lib/i18n";
 import { parseBulkText, parseSpreadsheetRows } from "@/lib/parse-items";
 import { Button, Card, Input, Spinner, Textarea } from "./ui";
 
 interface AddItemsPanelProps {
   onAddItems: (
     items: { name: string; quantity: number; category: string | null }[]
-  ) => Promise<number>;
+  ) => Promise<InsertItemsResult>;
   onSuccess?: () => void;
   inModal?: boolean;
+}
+
+function bulkResultMessage(
+  t: (key: TranslationKey, params?: Record<string, string | number>) => string,
+  result: InsertItemsResult,
+  fileName?: string
+): string {
+  const { added, skipped } = result;
+
+  if (added === 0 && skipped > 0) {
+    return t("allDuplicatesSkipped", { count: skipped });
+  }
+
+  if (skipped > 0) {
+    if (fileName) {
+      return t("importedWithSkipped", { added, skipped, file: fileName });
+    }
+    return t("addedWithSkipped", { added, skipped });
+  }
+
+  if (fileName) {
+    return added === 1
+      ? t("importedItem", { file: fileName })
+      : t("importedItems", { count: added, file: fileName });
+  }
+
+  return added === 1 ? t("addedItem") : t("addedItems", { count: added });
 }
 
 export function AddItemsPanel({
@@ -48,10 +77,12 @@ export function AddItemsPanel({
     setLoading(true);
     setMessage(null);
     try {
-      const count = await onAddItems(parsed);
-      showSuccess(count === 1 ? t("addedItem") : t("addedItems", { count }));
-      setPasteText("");
-      onSuccess?.();
+      const result = await onAddItems(parsed);
+      showSuccess(bulkResultMessage(t, result));
+      if (result.added > 0) {
+        setPasteText("");
+        onSuccess?.();
+      }
     } catch (err) {
       showError(formatError(err, te, "failedAddItems"));
     } finally {
@@ -67,7 +98,11 @@ export function AddItemsPanel({
     setLoading(true);
     setMessage(null);
     try {
-      await onAddItems([{ name, quantity: 1, category: null }]);
+      const result = await onAddItems([{ name, quantity: 1, category: null }]);
+      if (result.added === 0) {
+        showError(t("itemAlreadyExists"));
+        return;
+      }
       setQuickName("");
       showSuccess(t("itemAdded"));
       onSuccess?.();
@@ -116,13 +151,11 @@ export function AddItemsPanel({
         sample: parsed.slice(0, 5).map((p) => p.name),
       });
 
-      const count = await onAddItems(parsed);
-      showSuccess(
-        count === 1
-          ? t("importedItem", { file: file.name })
-          : t("importedItems", { count, file: file.name })
-      );
-      onSuccess?.();
+      const result = await onAddItems(parsed);
+      showSuccess(bulkResultMessage(t, result, file.name));
+      if (result.added > 0) {
+        onSuccess?.();
+      }
     } catch (err) {
       showError(formatError(err, te, "failedImport"));
     } finally {
