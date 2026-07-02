@@ -9,6 +9,8 @@ export interface Person {
   id: string;
   trip_id: string;
   name: string;
+  active_session_id?: string | null;
+  last_active_at?: string | null;
   created_at: string;
 }
 
@@ -47,6 +49,7 @@ export interface ParsedItemInput {
 export interface StoredPerson {
   id: string;
   name: string;
+  sessionId: string;
 }
 
 export type ItemFilter = "all" | "unclaimed" | "mine";

@@ -12,8 +12,8 @@ import { SettlementSummary } from "@/components/SettlementSummary";
 import { ShareLink } from "@/components/ShareLink";
 import { useTranslation } from "@/components/LanguageProvider";
 import { Button, Card, Spinner } from "@/components/ui";
-import { formatError } from "@/lib/errors";
-import { buildJoinUrl, getStoredPerson, setStoredPerson } from "@/lib/storage";
+import { formatError, errorCode } from "@/lib/errors";
+import { buildJoinUrl, clearStoredPerson, getStoredPerson, setStoredPerson } from "@/lib/storage";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import {
   addPayment,
@@ -26,15 +26,19 @@ import {
   getPeople,
   getTrip,
   insertItems,
+  logout,
   renamePerson,
   subscribeToItems,
   subscribeToPayments,
   subscribeToPeople,
+  touchPresence,
   unclaimItem,
   updateItemPrice,
   updatePayment,
 } from "@/lib/trips";
-import type { Item, Payment, Person, Trip } from "@/types";
+import type { Item, Payment, Person, StoredPerson, Trip } from "@/types";
+
+const PRESENCE_HEARTBEAT_MS = 45_000;
 
 interface TripPageClientProps {
   tripId: string;
@@ -56,7 +60,7 @@ export function TripPageClient({ tripId }: TripPageClientProps) {
   const addButtonRef = useRef<HTMLButtonElement>(null);
   const changeNameRef = useRef<HTMLButtonElement>(null);
   const summaryButtonRef = useRef<HTMLButtonElement>(null);
-  const [person, setPerson] = useState<{ id: string; name: string } | null>(null);
+  const [person, setPerson] = useState<StoredPerson | null>(null);
 
   const loadData = useCallback(async () => {
     if (!isSupabaseConfigured()) return;
@@ -92,6 +96,23 @@ export function TripPageClient({ tripId }: TripPageClientProps) {
     }
     setPerson(stored);
   }, [tripId, router]);
+
+  useEffect(() => {
+    if (!person?.sessionId) return;
+
+    const runHeartbeat = () => {
+      touchPresence(person.id, person.sessionId).catch((err) => {
+        if (errorCode(err) === "sessionExpired") {
+          clearStoredPerson(tripId);
+          router.replace(`/t/${tripId}/join`);
+        }
+      });
+    };
+
+    runHeartbeat();
+    const intervalId = window.setInterval(runHeartbeat, PRESENCE_HEARTBEAT_MS);
+    return () => window.clearInterval(intervalId);
+  }, [person?.id, person?.sessionId, tripId, router]);
 
   useEffect(() => {
     if (!isSupabaseConfigured()) {
@@ -161,13 +182,30 @@ export function TripPageClient({ tripId }: TripPageClientProps) {
   async function handleRename(newName: string) {
     if (!person) return;
     const updated = await renamePerson(person.id, newName);
-    const stored = { id: person.id, name: updated.name };
+    const stored: StoredPerson = {
+      id: person.id,
+      name: updated.name,
+      sessionId: person.sessionId,
+    };
     setStoredPerson(tripId, stored);
     setPerson(stored);
     setPeople((prev) =>
       prev.map((p) => (p.id === person.id ? { ...p, name: updated.name } : p))
     );
     setChangeNameOpen(false);
+  }
+
+  async function handleLogout() {
+    if (!person) return;
+    if (!window.confirm(t("logoutConfirm"))) return;
+
+    try {
+      await logout(person.id, person.sessionId);
+    } catch (err) {
+      console.error(err);
+    }
+    clearStoredPerson(tripId);
+    router.replace(`/t/${tripId}/join`);
   }
 
   return (
@@ -197,6 +235,29 @@ export function TripPageClient({ tripId }: TripPageClientProps) {
                   <path d="m2.695 14.762-1.262 3.154a.5.5 0 0 0 .65.65l3.155-1.262a4 4 0 0 0 1.343-.885L17.5 5.5a2.121 2.121 0 0 0-3-3L3.58 13.42a4 4 0 0 0-.885 1.343Z" />
                 </svg>
                 {t("changeName")}
+              </button>
+              <span className="text-muted" aria-hidden="true">
+                ·
+              </span>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="inline-flex min-h-8 items-center gap-1 rounded-md text-xs font-medium text-muted motion-safe:transition-colors motion-safe:duration-200 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  className="h-3.5 w-3.5"
+                  aria-hidden="true"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M3 4.25A2.25 2.25 0 0 1 5.25 2h5.5A2.25 2.25 0 0 1 13 4.25v2a.75.75 0 0 1-1.5 0v-2a.75.75 0 0 0-.75-.75h-5.5a.75.75 0 0 0-.75.75v11.5c0 .414.336.75.75.75h5.5a.75.75 0 0 0 .75-.75v-2a.75.75 0 0 1 1.5 0v2A2.25 2.25 0 0 1 10.75 18h-5.5A2.25 2.25 0 0 1 3 15.75V4.25Zm6.47 4.97a.75.75 0 0 0-1.06 0l-3 3a.75.75 0 0 0 0 1.06l3 3a.75.75 0 1 0 1.06-1.06L8.56 12.5H16.5a.75.75 0 0 0 0-1.5H8.56l1.97-1.97a.75.75 0 0 0 0-1.06Z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                {t("logoutDevice")}
               </button>
             </p>
           </div>

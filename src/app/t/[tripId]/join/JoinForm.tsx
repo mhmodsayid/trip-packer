@@ -11,7 +11,7 @@ import { formatError } from "@/lib/errors";
 import { pinsMatch } from "@/lib/pin";
 import { setStoredPerson } from "@/lib/storage";
 import { isSupabaseConfigured } from "@/lib/supabase";
-import { findOrCreatePerson, getTrip } from "@/lib/trips";
+import { joinTrip, getTrip } from "@/lib/trips";
 import type { Trip } from "@/types";
 
 interface JoinFormProps {
@@ -112,8 +112,8 @@ export function JoinForm({ params }: JoinFormProps) {
     setStepError(null);
 
     try {
-      const person = await findOrCreatePerson(tripId, trimmed);
-      setStoredPerson(tripId, { id: person.id, name: person.name });
+      const { person, sessionId } = await joinTrip(tripId, trimmed);
+      setStoredPerson(tripId, { id: person.id, name: person.name, sessionId });
       router.replace(`/t/${tripId}`);
     } catch (err) {
       setStepError(formatError(err, te, "failedJoinTrip"));

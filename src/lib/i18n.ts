@@ -40,6 +40,8 @@ const translations = {
     signedInAs: "Signed in as",
     changeName: "Change name",
     changeNameTitle: "Change your name",
+    logoutDevice: "Log out from this device",
+    logoutConfirm: "Log out from this device? Your name will be free for you to use elsewhere.",
     save: "Save",
     cancel: "Cancel",
     shareJoinLink: "Share join link",
@@ -207,6 +209,11 @@ const translations = {
       failedAddPayment: "Failed to add payment.",
       failedUpdatePayment: "Failed to update payment.",
       failedDeletePayment: "Failed to delete payment.",
+      nameInUse:
+        "This name is already logged in on another device. Log out there first, or choose another name.",
+      nameTaken: "That name is already taken by someone else in this trip.",
+      sessionExpired:
+        "Your session on this device is no longer active. Please join again.",
       missingSupabase:
         "Missing Supabase configuration. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY in .env.local",
     },
@@ -247,6 +254,9 @@ const translations = {
     signedInAs: "مسجّل باسم",
     changeName: "تغيير الاسم",
     changeNameTitle: "تغيير اسمك",
+    logoutDevice: "تسجيل الخروج من هذا الجهاز",
+    logoutConfirm:
+      "تسجيل الخروج من هذا الجهاز؟ سيصبح اسمك متاحاً للانضمام من جهاز آخر.",
     save: "حفظ",
     cancel: "إلغاء",
     shareJoinLink: "مشاركة رابط الانضمام",
@@ -414,6 +424,10 @@ const translations = {
       failedAddPayment: "فشلت إضافة الدفعة.",
       failedUpdatePayment: "فشل تحديث الدفعة.",
       failedDeletePayment: "فشل حذف الدفعة.",
+      nameInUse:
+        "هذا الاسم مسجّل دخوله على جهاز آخر. سجّل الخروج هناك أولاً، أو اختر اسماً آخر.",
+      nameTaken: "هذا الاسم مستخدم بالفعل من شخص آخر في هذه الرحلة.",
+      sessionExpired: "جلستك على هذا الجهاز لم تعد نشطة. يرجى الانضمام مجدداً.",
       missingSupabase:
         "إعداد Supabase ناقص. اضبط NEXT_PUBLIC_SUPABASE_URL و NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY في .env.local",
     },

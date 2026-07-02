@@ -7,7 +7,7 @@ import { useTranslation } from "@/components/LanguageProvider";
 import { Button, Input, Spinner } from "@/components/ui";
 import { formatError } from "@/lib/errors";
 import { setStoredPerson } from "@/lib/storage";
-import { findOrCreatePerson } from "@/lib/trips";
+import { joinTrip } from "@/lib/trips";
 
 interface AdminEnterTripButtonProps {
   tripId: string;
@@ -42,8 +42,8 @@ export function AdminEnterTripButton({ tripId }: AdminEnterTripButtonProps) {
     setError(null);
 
     try {
-      const person = await findOrCreatePerson(tripId, trimmed);
-      setStoredPerson(tripId, { id: person.id, name: person.name });
+      const { person, sessionId } = await joinTrip(tripId, trimmed);
+      setStoredPerson(tripId, { id: person.id, name: person.name, sessionId });
       router.push(`/t/${tripId}`);
     } catch (err) {
       setError(formatError(err, te, "failedJoinTrip"));

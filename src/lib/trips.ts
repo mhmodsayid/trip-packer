@@ -10,6 +10,27 @@ import { generatePin } from "./pin";
 import { TABLES } from "./tables";
 import type { Item, Payment, Person, Trip } from "@/types";
 
+export const PRESENCE_TIMEOUT_MS = 2 * 60 * 1000;
+
+export interface JoinResult {
+  person: Person;
+  sessionId: string;
+}
+
+function mapPerson(row: Record<string, unknown>): Person {
+  return row as unknown as Person;
+}
+
+function isSessionActive(row: {
+  active_session_id?: string | null;
+  last_active_at?: string | null;
+}): boolean {
+  if (!row.active_session_id || !row.last_active_at) return false;
+  const lastActive = new Date(String(row.last_active_at)).getTime();
+  if (Number.isNaN(lastActive)) return false;
+  return Date.now() - lastActive < PRESENCE_TIMEOUT_MS;
+}
+
 function mapItem(row: Record<string, unknown>): Item {
   const item = row as unknown as Item;
   return {
@@ -52,30 +73,83 @@ export async function getTrip(tripId: string): Promise<Trip | null> {
   return data as Trip | null;
 }
 
-export async function findOrCreatePerson(
-  tripId: string,
-  name: string
-): Promise<Person> {
+export async function joinTrip(tripId: string, name: string): Promise<JoinResult> {
   const supabase = getSupabase();
   const trimmed = name.trim();
+  const sessionId = crypto.randomUUID();
+  const now = new Date().toISOString();
 
-  const { data: existing } = await supabase
+  const { data: existing, error: fetchError } = await supabase
     .from(TABLES.people)
     .select("*")
     .eq("trip_id", tripId)
     .ilike("name", trimmed)
     .maybeSingle();
 
-  if (existing) return existing as Person;
+  if (fetchError) throw fetchError;
+
+  if (!existing) {
+    const { data, error } = await supabase
+      .from(TABLES.people)
+      .insert({
+        trip_id: tripId,
+        name: trimmed,
+        active_session_id: sessionId,
+        last_active_at: now,
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return { person: mapPerson(data as Record<string, unknown>), sessionId };
+  }
+
+  const row = existing as Record<string, unknown>;
+  if (
+    isSessionActive({
+      active_session_id: row.active_session_id as string | null,
+      last_active_at: row.last_active_at as string | null,
+    })
+  ) {
+    throw new AppError("nameInUse");
+  }
 
   const { data, error } = await supabase
     .from(TABLES.people)
-    .insert({ trip_id: tripId, name: trimmed })
+    .update({ active_session_id: sessionId, last_active_at: now })
+    .eq("id", existing.id)
     .select()
     .single();
 
   if (error) throw error;
-  return data as Person;
+  return { person: mapPerson(data as Record<string, unknown>), sessionId };
+}
+
+export async function logout(personId: string, sessionId: string): Promise<void> {
+  const supabase = getSupabase();
+  const { error } = await supabase
+    .from(TABLES.people)
+    .update({ active_session_id: null })
+    .eq("id", personId)
+    .eq("active_session_id", sessionId);
+
+  if (error) throw error;
+}
+
+export async function touchPresence(
+  personId: string,
+  sessionId: string
+): Promise<void> {
+  const supabase = getSupabase();
+  const { data, error } = await supabase
+    .from(TABLES.people)
+    .update({ last_active_at: new Date().toISOString() })
+    .eq("id", personId)
+    .eq("active_session_id", sessionId)
+    .select("id");
+
+  if (error) throw error;
+  if (!data?.length) throw new AppError("sessionExpired");
 }
 
 export async function renamePerson(
@@ -86,6 +160,39 @@ export async function renamePerson(
   if (!trimmed) throw new AppError("emptyName");
 
   const supabase = getSupabase();
+
+  const { data: current, error: currentError } = await supabase
+    .from(TABLES.people)
+    .select("*")
+    .eq("id", personId)
+    .single();
+
+  if (currentError) throw currentError;
+  const currentPerson = mapPerson(current as Record<string, unknown>);
+
+  if (currentPerson.name.toLowerCase() === trimmed.toLowerCase()) {
+    const { data, error } = await supabase
+      .from(TABLES.people)
+      .update({ name: trimmed })
+      .eq("id", personId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return mapPerson(data as Record<string, unknown>);
+  }
+
+  const { data: conflict, error: conflictError } = await supabase
+    .from(TABLES.people)
+    .select("id")
+    .eq("trip_id", currentPerson.trip_id)
+    .ilike("name", trimmed)
+    .neq("id", personId)
+    .maybeSingle();
+
+  if (conflictError) throw conflictError;
+  if (conflict) throw new AppError("nameTaken");
+
   const { data, error } = await supabase
     .from(TABLES.people)
     .update({ name: trimmed })
@@ -94,7 +201,7 @@ export async function renamePerson(
     .single();
 
   if (error) throw error;
-  return data as Person;
+  return mapPerson(data as Record<string, unknown>);
 }
 
 export async function getPeople(tripId: string): Promise<Person[]> {

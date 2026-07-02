@@ -10,7 +10,7 @@ export function getStoredPerson(tripId: string): StoredPerson | null {
     const raw = localStorage.getItem(storageKey(tripId));
     if (!raw) return null;
     const parsed = JSON.parse(raw) as StoredPerson;
-    if (parsed?.id && parsed?.name) return parsed;
+    if (parsed?.id && parsed?.name && parsed?.sessionId) return parsed;
     return null;
   } catch {
     return null;

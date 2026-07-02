@@ -13,6 +13,8 @@ create table if not exists tp_people (
   id uuid primary key default gen_random_uuid(),
   trip_id uuid not null references tp_trips(id) on delete cascade,
   name text not null,
+  active_session_id text,
+  last_active_at timestamptz,
   created_at timestamptz default now()
 );
 
