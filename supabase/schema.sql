@@ -25,11 +25,13 @@ create table if not exists tp_items (
   quantity int default 1,
   category text,
   assigned_person_id uuid references tp_people(id) on delete set null,
+  added_by_person_id uuid references tp_people(id) on delete set null,
   created_at timestamptz default now()
 );
 
 create index if not exists tp_items_trip_id_idx on tp_items(trip_id);
 create index if not exists tp_items_assigned_person_id_idx on tp_items(assigned_person_id);
+create index if not exists tp_items_added_by_person_id_idx on tp_items(added_by_person_id);
 
 -- Required for Realtime filters on these tables
 alter table tp_items replica identity full;

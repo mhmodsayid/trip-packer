@@ -48,6 +48,7 @@ const translations = {
     claim: "Claim",
     unclaim: "Unclaim",
     delete: "Delete",
+    deleteConfirm: 'Remove "{{name}}" from the list?',
 
     addItems: "Add items",
     addItemsHint: "Paste a list, upload a spreadsheet, or quick-add one item.",
@@ -94,6 +95,7 @@ const translations = {
       actionFailed: "Action failed.",
       itemAlreadyClaimed: "Item is already claimed.",
       couldNotUnclaim: "Could not unclaim item.",
+      couldNotDeleteItem: "You can only remove items you added.",
       noValidItems: "No valid items found. Check the format.",
       failedAddItems: "Failed to add items.",
       failedAddItem: "Failed to add item.",
@@ -147,6 +149,7 @@ const translations = {
     claim: "احجز",
     unclaim: "إلغاء الحجز",
     delete: "حذف",
+    deleteConfirm: 'إزالة "{{name}}" من القائمة؟',
 
     addItems: "إضافة عناصر",
     addItemsHint: "الصق قائمة، ارفع جدول بيانات، أو أضف عنصراً واحداً بسرعة.",
@@ -193,6 +196,7 @@ const translations = {
       actionFailed: "فشلت العملية.",
       itemAlreadyClaimed: "العنصر محجوز بالفعل.",
       couldNotUnclaim: "تعذّر إلغاء الحجز.",
+      couldNotDeleteItem: "يمكنك حذف العناصر التي أضفتها فقط.",
       noValidItems: "لم يُعثر على عناصر صالحة. تحقق من الصيغة.",
       failedAddItems: "فشلت إضافة العناصر.",
       failedAddItem: "فشلت إضافة العنصر.",

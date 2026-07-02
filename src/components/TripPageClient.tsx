@@ -168,12 +168,14 @@ export function TripPageClient({ tripId }: TripPageClientProps) {
           currentPersonId={person.id}
           onClaim={(id) => claimItem(id, person.id)}
           onUnclaim={(id) => unclaimItem(id, person.id)}
-          onDelete={deleteItem}
+          onDelete={(id) => deleteItem(id, person.id)}
           loading={loading}
         />
       </section>
 
-      <AddItemsPanel onAddItems={(newItems) => insertItems(tripId, newItems)} />
+      <AddItemsPanel
+        onAddItems={(newItems) => insertItems(tripId, person.id, newItems)}
+      />
     </main>
   );
 }

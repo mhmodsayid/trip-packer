@@ -82,6 +82,7 @@ export async function getItems(tripId: string): Promise<Item[]> {
 
 export async function insertItems(
   tripId: string,
+  addedByPersonId: string,
   items: { name: string; quantity: number; category: string | null }[]
 ): Promise<number> {
   if (items.length === 0) return 0;
@@ -92,6 +93,7 @@ export async function insertItems(
     name: item.name,
     quantity: item.quantity,
     category: item.category,
+    added_by_person_id: addedByPersonId,
   }));
 
   const { error } = await supabase.from(TABLES.items).insert(rows);
@@ -128,10 +130,17 @@ export async function unclaimItem(itemId: string, personId: string): Promise<voi
   if (!data?.length) throw new AppError("couldNotUnclaim");
 }
 
-export async function deleteItem(itemId: string): Promise<void> {
+export async function deleteItem(itemId: string, personId: string): Promise<void> {
   const supabase = getSupabase();
-  const { error } = await supabase.from(TABLES.items).delete().eq("id", itemId);
+  const { data, error } = await supabase
+    .from(TABLES.items)
+    .delete()
+    .eq("id", itemId)
+    .eq("added_by_person_id", personId)
+    .select("id");
+
   if (error) throw error;
+  if (!data?.length) throw new AppError("couldNotDeleteItem");
 }
 
 export function subscribeToItems(

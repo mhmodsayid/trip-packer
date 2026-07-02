@@ -48,13 +48,31 @@ const benign = [
   "already exists",
 ];
 
-async function run() {
+function createClient() {
+  if (process.env.PGHOST) {
+    return new pg.Client({
+      host: process.env.PGHOST,
+      port: Number(process.env.PGPORT ?? 5432),
+      user: process.env.PGUSER,
+      password: process.env.PGPASSWORD,
+      database: process.env.PGDATABASE ?? "postgres",
+      ssl: { rejectUnauthorized: false },
+    });
+  }
+
   const raw = process.env.DATABASE_URL;
   if (!raw) {
-    console.error("DATABASE_URL is required.");
+    console.error("Set DATABASE_URL or PGHOST/PGUSER/PGPASSWORD.");
     process.exit(1);
   }
 
+  return new pg.Client({
+    connectionString: directUrl(raw),
+    ssl: { rejectUnauthorized: false },
+  });
+}
+
+async function run() {
   const sql = readFileSync(join(__dirname, "..", "supabase", "schema.sql"), "utf8");
   const statements = splitStatements(sql).filter(isAllowed);
 
@@ -63,15 +81,11 @@ async function run() {
     process.exit(1);
   }
 
-  const connectionString = directUrl(raw);
-  const client = new pg.Client({
-    connectionString,
-    ssl: { rejectUnauthorized: false },
-  });
+  const client = createClient();
 
   await client.connect();
-  const usedPort = new URL(connectionString).port || "5432";
-  console.log(`Connected via pooler host port ${usedPort}. Applying ${statements.length} tp_ statements...`);
+  const target = process.env.PGHOST ?? "pooler";
+  console.log(`Connected (${target}). Applying ${statements.length} tp_ statements...`);
 
   for (const statement of statements) {
     try {
@@ -108,13 +122,14 @@ async function run() {
     select table_name
     from information_schema.tables
     where table_schema = 'public'
-      and table_name in ('categories', 'landmarks', 'users', 'contact_messages')
+      and table_name not like 'tp_%'
     order by table_name
+    limit 10
   `);
 
   console.log("tp_ tables:", tables.rows.map((r) => r.table_name).join(", ") || "(none)");
   console.log("realtime:", realtime.rows.map((r) => r.tablename).join(", ") || "(none)");
-  console.log("m3alm tables still present:", m3almTables.rows.map((r) => r.table_name).join(", ") || "(check names)");
+  console.log("other public tables:", m3almTables.rows.map((r) => r.table_name).join(", ") || "(none)");
 
   const ok = tables.rows.length === 3;
   await client.end();

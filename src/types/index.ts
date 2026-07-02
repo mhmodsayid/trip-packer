@@ -19,6 +19,7 @@ export interface Item {
   quantity: number;
   category: string | null;
   assigned_person_id: string | null;
+  added_by_person_id: string | null;
   created_at: string;
 }
 

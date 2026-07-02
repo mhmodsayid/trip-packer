@@ -76,6 +76,16 @@ export function ItemList({
     }
   }
 
+  async function handleDelete(item: Item) {
+    if (!item.added_by_person_id || item.added_by_person_id !== currentPersonId) {
+      return;
+    }
+    if (!window.confirm(t("deleteConfirm", { name: item.name }))) {
+      return;
+    }
+    await handleAction(() => onDelete(item.id), item.id);
+  }
+
   const filterLabels: Record<ItemFilter, string> = {
     all: t("filterAll"),
     unclaimed: t("filterUnclaimed"),
@@ -134,6 +144,9 @@ export function ItemList({
             const assigneeName = item.assigned_person_id
               ? peopleMap.get(item.assigned_person_id) ?? t("unknown")
               : null;
+            const isCreator =
+              item.added_by_person_id !== null &&
+              item.added_by_person_id === currentPersonId;
             const busy = actionId === item.id;
 
             return (
@@ -182,15 +195,17 @@ export function ItemList({
                       {busy ? <Spinner label={t("loading")} /> : t("unclaim")}
                     </Button>
                   )}
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => handleAction(() => onDelete(item.id), item.id)}
-                    disabled={busy}
-                    className="text-red-600 hover:text-red-700"
-                  >
-                    {t("delete")}
-                  </Button>
+                  {isCreator && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleDelete(item)}
+                      disabled={busy}
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      {t("delete")}
+                    </Button>
+                  )}
                 </div>
               </li>
             );
