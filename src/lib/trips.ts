@@ -117,6 +117,25 @@ export async function claimItem(
   if (!data?.length) throw new AppError("itemAlreadyClaimed");
 }
 
+export async function claimItems(
+  itemIds: string[],
+  personId: string
+): Promise<number> {
+  let claimed = 0;
+  for (const itemId of itemIds) {
+    try {
+      await claimItem(itemId, personId);
+      claimed++;
+    } catch (err) {
+      if (err instanceof AppError && err.code === "itemAlreadyClaimed") {
+        continue;
+      }
+      throw err;
+    }
+  }
+  return claimed;
+}
+
 export async function unclaimItem(itemId: string, personId: string): Promise<void> {
   const supabase = getSupabase();
   const { data, error } = await supabase

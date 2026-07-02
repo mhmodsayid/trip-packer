@@ -3,8 +3,9 @@
 import { useMemo, useState } from "react";
 import type { Item, ItemFilter, Person } from "@/types";
 import { useTranslation } from "@/components/LanguageProvider";
+import { ItemRow, useItemAnimations } from "@/components/ItemRow";
 import { formatError } from "@/lib/errors";
-import { Badge, Button, Input, Spinner } from "./ui";
+import { Input, Spinner } from "./ui";
 
 interface ItemListProps {
   items: Item[];
@@ -13,6 +14,7 @@ interface ItemListProps {
   onClaim: (itemId: string) => Promise<void>;
   onUnclaim: (itemId: string) => Promise<void>;
   onDelete: (itemId: string) => Promise<void>;
+  onClaimMany?: (itemIds: string[]) => Promise<number>;
   loading?: boolean;
 }
 
@@ -23,13 +25,22 @@ export function ItemList({
   onClaim,
   onUnclaim,
   onDelete,
+  onClaimMany,
   loading,
 }: ItemListProps) {
   const { t, te } = useTranslation();
   const [filter, setFilter] = useState<ItemFilter>("all");
   const [search, setSearch] = useState("");
   const [actionId, setActionId] = useState<string | null>(null);
+  const [bulkBusy, setBulkBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  const { newIds, justClaimedIds, exitingItems, markExiting } = useItemAnimations(
+    items,
+    currentPersonId
+  );
 
   const peopleMap = useMemo(() => {
     const map = new Map<string, string>();
@@ -58,6 +69,12 @@ export function ItemList({
     return result;
   }, [items, filter, search, currentPersonId]);
 
+  const displayItems = useMemo(() => {
+    const ids = new Set(filtered.map((i) => i.id));
+    const extras = [...exitingItems.values()].filter((i) => !ids.has(i.id));
+    return [...filtered, ...extras];
+  }, [filtered, exitingItems]);
+
   const counts = useMemo(() => {
     const unclaimed = items.filter((i) => !i.assigned_person_id).length;
     const mine = items.filter((i) => i.assigned_person_id === currentPersonId).length;
@@ -83,7 +100,37 @@ export function ItemList({
     if (!window.confirm(t("deleteConfirm", { name: item.name }))) {
       return;
     }
+    markExiting(item);
     await handleAction(() => onDelete(item.id), item.id);
+  }
+
+  async function handleBulkClaim() {
+    if (!onClaimMany || selectedIds.size === 0) return;
+    setBulkBusy(true);
+    setActionError(null);
+    try {
+      await onClaimMany([...selectedIds]);
+      setSelectedIds(new Set());
+      setSelectMode(false);
+    } catch (err) {
+      setActionError(formatError(err, te, "actionFailed"));
+    } finally {
+      setBulkBusy(false);
+    }
+  }
+
+  function toggleSelect(itemId: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(itemId)) next.delete(itemId);
+      else next.add(itemId);
+      return next;
+    });
+  }
+
+  function exitSelectMode() {
+    setSelectMode(false);
+    setSelectedIds(new Set());
   }
 
   const filterLabels: Record<ItemFilter, string> = {
@@ -98,25 +145,44 @@ export function ItemList({
     { key: "mine", count: counts.mine },
   ];
 
+  const canBulkSelect = counts.unclaimed > 0 && Boolean(onClaimMany);
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 animate-section-in">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap gap-2">
-          {filters.map((f) => (
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="inline-flex flex-wrap gap-1 rounded-xl border border-border bg-white p-1 shadow-sm">
+            {filters.map((f) => (
+              <button
+                key={f.key}
+                type="button"
+                onClick={() => setFilter(f.key)}
+                className={`rounded-lg px-3 py-2 text-sm font-medium motion-safe:transition-all motion-safe:duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+                  filter === f.key
+                    ? "bg-primary text-white shadow-sm"
+                    : "text-muted hover:bg-slate-50 hover:text-foreground"
+                }`}
+              >
+                {filterLabels[f.key]} ({f.count})
+              </button>
+            ))}
+          </div>
+
+          {canBulkSelect && (
             <button
-              key={f.key}
               type="button"
-              onClick={() => setFilter(f.key)}
-              className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-                filter === f.key
-                  ? "bg-primary text-white"
-                  : "bg-white text-muted border border-border hover:bg-slate-50"
+              onClick={() => (selectMode ? exitSelectMode() : setSelectMode(true))}
+              className={`rounded-lg px-3 py-2 text-sm font-medium motion-safe:transition-colors motion-safe:duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+                selectMode
+                  ? "bg-slate-900 text-white"
+                  : "border border-border bg-white text-muted hover:bg-slate-50 hover:text-foreground"
               }`}
             >
-              {filterLabels[f.key]} ({f.count})
+              {selectMode ? t("cancelSelect") : t("selectItems")}
             </button>
-          ))}
+          )}
         </div>
+
         <Input
           placeholder={t("searchPlaceholder")}
           value={search}
@@ -125,89 +191,78 @@ export function ItemList({
         />
       </div>
 
-      {actionError && <p className="text-sm text-red-600">{actionError}</p>}
+      {actionError && (
+        <div
+          role="alert"
+          className="animate-toast-in rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+        >
+          {actionError}
+        </div>
+      )}
+
+      {selectMode && selectedIds.size > 0 && (
+        <div className="animate-toast-in flex flex-wrap items-center gap-2 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2">
+          <span className="text-sm font-medium text-foreground">
+            {t("selectedCount", { count: selectedIds.size })}
+          </span>
+          <button
+            type="button"
+            onClick={handleBulkClaim}
+            disabled={bulkBusy}
+            className="inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-white shadow-sm motion-safe:transition-transform motion-safe:duration-150 hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:opacity-50 motion-safe:active:scale-[0.97]"
+          >
+            {bulkBusy ? <Spinner label={t("loading")} /> : t("claimSelected", { count: selectedIds.size })}
+          </button>
+        </div>
+      )}
 
       {loading ? (
         <div className="flex justify-center py-12">
           <Spinner label={t("loading")} className="text-primary" />
         </div>
-      ) : filtered.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border bg-white py-12 text-center">
+      ) : displayItems.length === 0 ? (
+        <div className="animate-section-in rounded-xl border border-dashed border-border bg-white py-12 text-center">
           <p className="text-muted">
             {items.length === 0 ? t("noItemsYet") : t("noItemsMatch")}
           </p>
         </div>
       ) : (
-        <ul className="divide-y divide-border rounded-xl border border-border bg-white shadow-sm">
-          {filtered.map((item) => {
+        <ul className="overflow-hidden rounded-xl border border-border bg-white shadow-sm">
+          {displayItems.map((item, index) => {
             const isMine = item.assigned_person_id === currentPersonId;
+            const status = !item.assigned_person_id
+              ? "unclaimed"
+              : isMine
+                ? "mine"
+                : "assigned";
             const assigneeName = item.assigned_person_id
               ? peopleMap.get(item.assigned_person_id) ?? t("unknown")
               : null;
             const isCreator =
               item.added_by_person_id !== null &&
               item.added_by_person_id === currentPersonId;
-            const busy = actionId === item.id;
+            const busy = actionId === item.id || bulkBusy;
+            const isExiting = exitingItems.has(item.id);
 
             return (
-              <li
+              <ItemRow
                 key={item.id}
-                className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-medium">{item.name}</span>
-                    {item.quantity > 1 && (
-                      <Badge variant="muted">×{item.quantity}</Badge>
-                    )}
-                    {item.category && (
-                      <Badge variant="default">{item.category}</Badge>
-                    )}
-                  </div>
-                  <p className="mt-0.5 text-sm text-muted">
-                    {!item.assigned_person_id ? (
-                      <Badge variant="warning">{t("unclaimed")}</Badge>
-                    ) : isMine ? (
-                      <Badge variant="success">{t("you")}</Badge>
-                    ) : (
-                      <span>{assigneeName}</span>
-                    )}
-                  </p>
-                </div>
-
-                <div className="flex shrink-0 flex-wrap gap-2">
-                  {!item.assigned_person_id && (
-                    <Button
-                      size="sm"
-                      onClick={() => handleAction(() => onClaim(item.id), item.id)}
-                      disabled={busy}
-                    >
-                      {busy ? <Spinner label={t("loading")} /> : t("claim")}
-                    </Button>
-                  )}
-                  {isMine && (
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => handleAction(() => onUnclaim(item.id), item.id)}
-                      disabled={busy}
-                    >
-                      {busy ? <Spinner label={t("loading")} /> : t("unclaim")}
-                    </Button>
-                  )}
-                  {isCreator && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleDelete(item)}
-                      disabled={busy}
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      {t("delete")}
-                    </Button>
-                  )}
-                </div>
-              </li>
+                item={item}
+                assigneeName={assigneeName}
+                status={status}
+                isCreator={isCreator}
+                busy={busy}
+                selectMode={selectMode}
+                selected={selectedIds.has(item.id)}
+                isNew={newIds.has(item.id)}
+                isExiting={isExiting}
+                justClaimed={justClaimedIds.has(item.id)}
+                staggerIndex={index}
+                onToggleSelect={() => toggleSelect(item.id)}
+                onClaim={() => handleAction(() => onClaim(item.id), item.id)}
+                onUnclaim={() => handleAction(() => onUnclaim(item.id), item.id)}
+                onDelete={() => handleDelete(item)}
+              />
             );
           })}
         </ul>

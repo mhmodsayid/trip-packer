@@ -14,6 +14,7 @@ import { buildJoinUrl, getStoredPerson } from "@/lib/storage";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import {
   claimItem,
+  claimItems,
   deleteItem,
   getItems,
   getPeople,
@@ -137,7 +138,7 @@ export function TripPageClient({ tripId }: TripPageClientProps) {
   const joinUrl = buildJoinUrl(trip.id, trip.pin);
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-6 sm:py-8">
+    <main className="mx-auto max-w-3xl px-4 py-6 sm:py-8 animate-section-in">
       <header className="mb-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
@@ -158,7 +159,7 @@ export function TripPageClient({ tripId }: TripPageClientProps) {
       </header>
 
       {showShare && (
-        <div className="mb-6">
+        <div className="mb-6 animate-toast-in">
           <ShareLink url={joinUrl} pin={trip.pin} />
         </div>
       )}
@@ -190,6 +191,7 @@ export function TripPageClient({ tripId }: TripPageClientProps) {
           onClaim={(id) => claimItem(id, person.id)}
           onUnclaim={(id) => unclaimItem(id, person.id)}
           onDelete={(id) => deleteItem(id, person.id)}
+          onClaimMany={(ids) => claimItems(ids, person.id)}
           loading={loading}
         />
       </section>

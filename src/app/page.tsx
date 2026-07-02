@@ -95,7 +95,7 @@ export default function HomePage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-lg flex-col justify-center px-4 py-12">
+    <main className="mx-auto flex min-h-dvh max-w-lg flex-col justify-center px-4 py-12 animate-section-in">
       <div className="mb-8 text-center">
         <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-2xl text-white shadow-md">
           🎒
@@ -134,7 +134,11 @@ export default function HomePage() {
         </form>
       </Card>
 
-      {error && <p className="mt-4 text-center text-sm text-red-600">{error}</p>}
+      {error && (
+        <p className="mt-4 animate-toast-in text-center text-sm text-red-600" role="alert">
+          {error}
+        </p>
+      )}
     </main>
   );
 }

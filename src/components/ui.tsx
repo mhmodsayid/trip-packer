@@ -6,15 +6,15 @@ import {
 } from "react";
 
 const base =
-  "inline-flex items-center justify-center rounded-lg font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50";
+  "inline-flex items-center justify-center rounded-lg font-medium motion-safe:transition-[color,background-color,box-shadow,transform] motion-safe:duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 touch-manipulation";
 
 const variants = {
-  primary: "bg-primary text-white hover:bg-primary-hover shadow-sm",
+  primary: "bg-primary text-white hover:bg-primary-hover shadow-sm motion-safe:active:scale-[0.97]",
   secondary:
-    "bg-white text-foreground border border-border hover:bg-slate-50 shadow-sm",
-  ghost: "text-muted hover:bg-slate-100 hover:text-foreground",
-  danger: "bg-red-600 text-white hover:bg-red-700 shadow-sm",
-  success: "bg-success text-white hover:bg-green-700 shadow-sm",
+    "bg-white text-foreground border border-border hover:bg-slate-50 shadow-sm motion-safe:active:scale-[0.97]",
+  ghost: "text-muted hover:bg-slate-100 hover:text-foreground motion-safe:active:scale-[0.97]",
+  danger: "bg-red-600 text-white hover:bg-red-700 shadow-sm motion-safe:active:scale-[0.97]",
+  success: "bg-success text-white hover:bg-green-700 shadow-sm motion-safe:active:scale-[0.97]",
 };
 
 const sizes = {
