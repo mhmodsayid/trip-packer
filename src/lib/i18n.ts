@@ -139,6 +139,11 @@ const translations = {
     adminDeleteItemConfirm: 'Delete item "{{name}}"?',
     adminInvalidPassword: "Incorrect password.",
     adminNotConfigured: "Admin is not configured on this server.",
+    adminEnterTrip: "Enter trip as participant",
+    adminEnterTripTitle: "Join as participant",
+    adminEnterTripHint: "Choose the name you'll use on the packing list.",
+    adminEnterTripConfirm: "Enter trip",
+    adminParticipantDefaultName: "Admin",
 
     errors: {
       failedCreateTrip: "Failed to create trip.",
@@ -300,6 +305,11 @@ const translations = {
     adminDeleteItemConfirm: 'حذف العنصر "{{name}}"؟',
     adminInvalidPassword: "كلمة المرور غير صحيحة.",
     adminNotConfigured: "لم يتم إعداد المسؤول على هذا الخادم.",
+    adminEnterTrip: "الدخول إلى الرحلة كمشارك",
+    adminEnterTripTitle: "الانضمام كمشارك",
+    adminEnterTripHint: "اختر الاسم الذي ستستخدمه في قائمة التعبئة.",
+    adminEnterTripConfirm: "دخول الرحلة",
+    adminParticipantDefaultName: "المشرف",
 
     errors: {
       failedCreateTrip: "فشل إنشاء الرحلة.",

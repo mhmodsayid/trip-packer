@@ -10,6 +10,7 @@ import {
   adminSetPinAction,
   adminUpdateItemAction,
 } from "@/app/admin/actions";
+import { AdminEnterTripButton } from "@/components/admin/AdminEnterTripButton";
 import { useTranslation } from "@/components/LanguageProvider";
 import { Button, Card, Input } from "@/components/ui";
 import type { AdminTripDetail } from "@/lib/admin-data";
@@ -40,7 +41,10 @@ export function AdminTripDetailView({ detail }: AdminTripDetailViewProps) {
       </Link>
 
       <Card className="space-y-4">
-        <h2 className="text-lg font-semibold">{t("adminTripSettings")}</h2>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <h2 className="text-lg font-semibold">{t("adminTripSettings")}</h2>
+          <AdminEnterTripButton tripId={trip.id} />
+        </div>
         <p className="text-sm text-muted">
           {t("adminTripName")}: <span className="font-medium text-foreground">{trip.name}</span>
         </p>
