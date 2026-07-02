@@ -3,8 +3,10 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ConfigWarning } from "@/components/ConfigWarning";
+import { JoinLockoutNotice, useJoinLockout } from "@/components/JoinLockoutNotice";
 import { useTranslation } from "@/components/LanguageProvider";
 import { Button, Card, Input, Spinner } from "@/components/ui";
+import { recordFailure, resetAttempts } from "@/lib/attempts";
 import { formatError } from "@/lib/errors";
 import { pinsMatch } from "@/lib/pin";
 import { setStoredPerson } from "@/lib/storage";
@@ -22,6 +24,7 @@ export function JoinForm({ params }: JoinFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { t, te } = useTranslation();
+  const { locked: joinLocked, message: joinLockMessage } = useJoinLockout();
   const [tripId, setTripId] = useState<string | null>(null);
   const [trip, setTrip] = useState<Trip | null>(null);
   const [stage, setStage] = useState<JoinStage>("loading");
@@ -51,6 +54,7 @@ export function JoinForm({ params }: JoinFormProps) {
     getTrip(tripId)
       .then((loaded) => {
         if (!loaded) {
+          recordFailure();
           setFatalError(te("tripNotFound"));
           return;
         }
@@ -59,9 +63,11 @@ export function JoinForm({ params }: JoinFormProps) {
 
         if (urlPin) {
           if (!pinsMatch(loaded.pin, urlPin)) {
+            recordFailure();
             setFatalError(te("invalidPin"));
             return;
           }
+          resetAttempts();
           setStage("name");
           return;
         }
@@ -75,7 +81,7 @@ export function JoinForm({ params }: JoinFormProps) {
 
   async function handlePinSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!trip) return;
+    if (!trip || joinLocked) return;
 
     const entered = pinInput.trim();
     if (!entered) return;
@@ -84,11 +90,13 @@ export function JoinForm({ params }: JoinFormProps) {
     setStepError(null);
 
     if (!pinsMatch(trip.pin, entered)) {
+      recordFailure();
       setStepError(te("invalidPin"));
       setPinSubmitting(false);
       return;
     }
 
+    resetAttempts();
     setStage("name");
     setPinSubmitting(false);
   }
@@ -132,10 +140,11 @@ export function JoinForm({ params }: JoinFormProps) {
   if (fatalError) {
     return (
       <main className="mx-auto max-w-md px-4 py-12 animate-section-in">
-        <Card>
+        <Card className="space-y-3">
           <h1 className="text-xl font-bold">{t("cantJoin")}</h1>
-          <p className="mt-2 text-red-600">{fatalError}</p>
-          <Button className="mt-4" variant="secondary" onClick={() => router.push("/")}>
+          <JoinLockoutNotice message={joinLockMessage} />
+          <p className="text-red-600">{fatalError}</p>
+          <Button className="mt-1" variant="secondary" onClick={() => router.push("/")}>
             {t("goHome")}
           </Button>
         </Card>
@@ -158,6 +167,7 @@ export function JoinForm({ params }: JoinFormProps) {
 
         <Card>
           <form onSubmit={handlePinSubmit} className="space-y-4">
+            <JoinLockoutNotice message={joinLockMessage} />
             <div>
               <label htmlFor="pin" className="text-sm font-medium">
                 {t("enterPin")}
@@ -167,8 +177,8 @@ export function JoinForm({ params }: JoinFormProps) {
                 placeholder={t("pinPlaceholder")}
                 value={pinInput}
                 onChange={(e) => setPinInput(e.target.value)}
-                disabled={pinSubmitting}
-                autoFocus
+                disabled={pinSubmitting || joinLocked}
+                autoFocus={!joinLocked}
                 autoComplete="off"
                 className="mt-1 font-mono uppercase tracking-wider"
               />
@@ -176,12 +186,12 @@ export function JoinForm({ params }: JoinFormProps) {
             <Button
               type="submit"
               className="w-full"
-              disabled={pinSubmitting || !pinInput.trim()}
+              disabled={joinLocked || pinSubmitting || !pinInput.trim()}
             >
               {pinSubmitting ? <Spinner label={t("loading")} /> : t("continueToJoin")}
             </Button>
           </form>
-          {stepError && (
+          {stepError && !joinLocked && (
             <p className="mt-3 animate-toast-in text-sm text-red-600" role="alert">
               {stepError}
             </p>

@@ -3,9 +3,11 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ConfigWarning } from "@/components/ConfigWarning";
+import { JoinLockoutNotice, useJoinLockout } from "@/components/JoinLockoutNotice";
 import { ShareLink } from "@/components/ShareLink";
 import { useTranslation } from "@/components/LanguageProvider";
 import { Button, Card, Input, Spinner } from "@/components/ui";
+import { recordFailure } from "@/lib/attempts";
 import { buildJoinUrl } from "@/lib/storage";
 import { formatError } from "@/lib/errors";
 import { isSupabaseConfigured } from "@/lib/supabase";
@@ -22,6 +24,7 @@ export default function HomePage() {
   const [joinTripId, setJoinTripId] = useState("");
   const [createError, setCreateError] = useState<string | null>(null);
   const [joinError, setJoinError] = useState<string | null>(null);
+  const { locked: joinLocked, message: joinLockMessage } = useJoinLockout();
 
   async function handleCreate(e: FormEvent) {
     e.preventDefault();
@@ -43,8 +46,11 @@ export default function HomePage() {
 
   function handleJoinByTripId(e: FormEvent) {
     e.preventDefault();
+    if (joinLocked) return;
+
     const tripId = extractTripIdFromJoinInput(joinTripId);
     if (!tripId || !isValidUuid(tripId)) {
+      recordFailure();
       setJoinError(te("invalidTripId"));
       return;
     }
@@ -122,6 +128,7 @@ export default function HomePage() {
         <h2 className="font-semibold">{t("joinExisting")}</h2>
         <p className="mt-1 text-sm text-muted">{t("joinExistingHint")}</p>
         <form onSubmit={handleJoinByTripId} className="mt-4 space-y-3">
+          <JoinLockoutNotice message={joinLockMessage} />
           <div>
             <label htmlFor="join-trip-id" className="text-sm font-medium">
               {t("tripIdLabel")}
@@ -131,6 +138,7 @@ export default function HomePage() {
               placeholder={t("tripIdPlaceholder")}
               value={joinTripId}
               onChange={(e) => setJoinTripId(e.target.value)}
+              disabled={joinLocked}
               className="mt-1 font-mono text-sm"
             />
           </div>
@@ -138,7 +146,7 @@ export default function HomePage() {
             type="submit"
             variant="secondary"
             className="w-full"
-            disabled={!joinTripId.trim()}
+            disabled={joinLocked || !joinTripId.trim()}
           >
             {t("continueToJoin")}
           </Button>
